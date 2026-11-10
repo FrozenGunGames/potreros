@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Potreros">
+<meta name="theme-color" content="#f9faf6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b231e" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif;touch-action:manipulation}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Potreros El Campamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Figtree:wght@400;500;600;700&display=swap" crossorigin="anonymous">
+<style>
+/* Layout: full-bleed satellite map, working panel on the right (landscape) or below (portrait) */
+:root{
+  --bg:#eef1ea; --surface:#f9faf6; --ink:#1b231d; --muted:#5d6a60; --line:#d3d9cf;
+  --accent:#1f4f9e; --accent-ink:#ffffff; --accent-soft:#dfe7f5;
+  --ok:#23824a; --ok-soft:#dbf0e2; --bad:#b9382a; --bad-soft:#f7e0dc; --warn:#9a6a00;
+  --blink:#ffd23f;
+  --map-line:#ffffff; --map-ok:#5fe08a; --map-bad:#ff7a69; --map-bg:#263024;
+  --f-display:"Zilla Slab", Rockwell, "Roboto Slab", Georgia, serif;
+  --f-ui:"Figtree", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a16; --surface:#1b231e; --ink:#e7ece6; --muted:#9aa79d; --line:#2e3a32;
+  --accent:#7ea6ea; --accent-ink:#0e1a2f; --accent-soft:#1f2c42;
+  --ok:#59c582; --ok-soft:#18321f; --bad:#ef7a6b; --bad-soft:#3a1d19; --warn:#e2b04a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a16; --surface:#1b231e; --ink:#e7ece6; --muted:#9aa79d; --line:#2e3a32;
+  --accent:#7ea6ea; --accent-ink:#0e1a2f; --accent-soft:#1f2c42;
+  --ok:#59c582; --ok-soft:#18321f; --bad:#ef7a6b; --bad-soft:#3a1d19; --warn:#e2b04a; color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;-webkit-text-size-adjust:100%}
+.app{height:100%;display:flex;min-height:0}
+#map{flex:1 1 auto;min-width:0;background:var(--map-bg);position:relative}
+.panel{flex:0 0 360px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-block:16px 20px;padding-left:16px;padding-right:max(16px, env(safe-area-inset-right, 0px));
+  background:var(--surface);border-left:1px solid var(--line);min-width:0}
+@media (orientation:portrait), (max-width:760px){
+  .app{flex-direction:column}
+  #map{flex:0 0 56%}
+  .panel{flex:1 1 auto;border-left:0;border-top:1px solid var(--line);padding-left:max(16px, env(safe-area-inset-left, 0px))}
+}
+
+/* header */
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.05;margin:2px 0 0;text-wrap:balance}
+.count{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--bg)}
+.lang button{font:700 12px/1 var(--f-ui);letter-spacing:.08em;color:var(--muted);background:transparent;border:0;border-radius:999px;padding:9px 13px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+/* mode switch */
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:4px}
+.modes button{font:600 13px/1.15 var(--f-ui);color:var(--muted);background:transparent;border:0;border-radius:7px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.modes button small{font-weight:500;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.modes button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* run status */
+.status{display:flex;flex-direction:column;gap:8px}
+.statusrow{display:flex;justify-content:space-between;align-items:baseline;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.statusrow b{color:var(--ink);font-weight:700}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.prompt{font-family:var(--f-display);font-size:21px;font-weight:500;line-height:1.2;margin:0;text-wrap:balance}
+.prompt em{font-style:normal;font-weight:700;color:var(--accent)}
+.hint{font-size:13px;color:var(--muted);margin:0}
+
+/* name list */
+.names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+@media (orientation:portrait) and (min-width:700px){.names{grid-template-columns:repeat(3,1fr)}}
+.names button{font:500 14px/1.2 var(--f-ui);text-align:left;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;cursor:pointer;min-height:42px;min-width:0;overflow-wrap:anywhere}
+.names button:disabled{cursor:default;color:var(--ink);opacity:1;-webkit-text-fill-color:currentColor}
+.names.readonly button{cursor:default}
+.names button.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);font-weight:700}
+.names button.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);font-weight:700}
+.names button.blink{animation:listblink 1s ease-in-out infinite alternate;border-color:var(--accent);font-weight:700}
+@keyframes listblink{from{background:var(--bg)}to{background:var(--blink);color:#1b231d}}
+.names button.badblink,.typeform input.badblink{animation:badblink .22s linear infinite alternate}
+@keyframes badblink{from{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}to{background:var(--bad);color:#fff;border-color:var(--bad)}}
+
+/* typing */
+.typeform{display:flex;gap:8px}
+.typeform input{flex:1;min-width:0;font:500 17px var(--f-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
+.btn{font:600 15px var(--f-ui);border-radius:8px;padding:11px 16px;cursor:pointer;border:1px solid transparent}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+
+/* feedback */
+.feedback{border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.feedback.ok{background:var(--ok-soft);color:var(--ok)}
+.feedback.bad{background:var(--bad-soft);color:var(--bad)}
+.feedback strong{font-size:16px}
+.feedback .de{color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* explore card */
+.card{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+.card .num{font:700 12px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.card .es{font-family:var(--f-display);font-size:26px;font-weight:700;line-height:1.1}
+.card .meta{display:flex;gap:14px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.toggle{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer}
+.toggle input{width:20px;height:20px;accent-color:var(--accent)}
+
+/* result */
+.score{display:flex;align-items:baseline;gap:10px}
+.score .big{font-family:var(--f-display);font-size:56px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.score .of{font-size:20px;color:var(--muted)}
+.misses{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.misses li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.misses li span:last-child{color:var(--bad);text-align:right}
+.best{font-size:13px;color:var(--muted)}
+
+/* map controls (placed over the map, clear of the notch/home bar) */
+.mapctl{position:absolute;z-index:1000;top:calc(10px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:6px}
+.mapctl button{width:44px;height:44px;border-radius:10px;border:0;background:rgba(20,26,22,.78);color:#fff;font:600 22px/1 var(--f-ui);cursor:pointer;display:grid;place-items:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.mapctl button svg{width:22px;height:22px}
+.mapctl{top:10px}
+.mapctl button.gps{color:#cfe3ff}
+.mapctl button.gps.on{color:#4aa3ff}
+.mapctl button.gps.follow{background:#1f6fe0;color:#fff}
+.mapctl button.gps.searching svg{animation:gpspulse 1s ease-in-out infinite alternate}
+@keyframes gpspulse{from{opacity:.35}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.mapctl button.gps.searching svg{animation:none}}
+.where{position:absolute;z-index:1000;left:calc(10px + env(safe-area-inset-left,0px));bottom:10px;max-width:calc(100% - 20px);background:rgba(16,22,18,.84);color:#fff;font:600 14px/1.25 var(--f-ui);padding:8px 12px;border-radius:10px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);pointer-events:none}
+.offline{font-size:13px;color:var(--muted);margin:0}
+.offline.ok{color:var(--ok);font-weight:600}
+.loadnote{position:absolute;inset:0;display:grid;place-items:center;color:#dfe6dc;font-size:14px;z-index:5;pointer-events:none}
+
+/* map overlay styling */
+.leaflet-container path.fld{transition:fill-opacity .2s}
+.leaflet-container path.blink{animation:mapblink .8s ease-in-out infinite alternate}
+@keyframes mapblink{from{stroke:var(--blink);stroke-width:2.5px;fill:var(--blink);fill-opacity:.08}to{stroke:var(--blink);stroke-width:6px;fill:var(--blink);fill-opacity:.55}}
+.leaflet-container path.sel{stroke:var(--blink);stroke-width:4px;fill:var(--blink);fill-opacity:.25}
+.leaflet-container path.flash{animation:flashbad .22s linear infinite alternate}
+@keyframes flashbad{from{stroke:var(--map-bad);stroke-width:2px;fill:var(--map-bad);fill-opacity:.1}to{stroke:var(--map-bad);stroke-width:6px;fill:var(--map-bad);fill-opacity:.65}}
+@media (prefers-reduced-motion:reduce){
+  .leaflet-container path.blink{animation:none;stroke:var(--blink);stroke-width:5px;fill:var(--blink);fill-opacity:.45}
+  .names button.blink{animation:none;background:var(--blink);color:#1b231d}
+  .leaflet-container path.flash{animation:none;stroke:var(--map-bad);stroke-width:5px;fill:var(--map-bad);fill-opacity:.5}
+  .names button.badblink,.typeform input.badblink{animation:none;background:var(--bad);color:#fff}
+}
+.leaflet-tooltip.lbl{background:rgba(16,22,18,.72);color:#fff;border:0;border-radius:5px;padding:2px 6px;font:600 var(--lblsize,12px)/1.2 var(--f-ui);white-space:nowrap;box-shadow:none}
+.leaflet-tooltip.lbl.ok{background:rgba(25,110,58,.88)}
+.leaflet-tooltip.lbl.bad{background:rgba(170,44,30,.9)}
+.leaflet-tooltip.lbl.dim{background:transparent;color:rgba(255,255,255,.85);font-weight:500;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+.leaflet-tooltip.lbl::before{display:none}
+
+/* --- Leaflet 1.9 core styles (subset) --- */
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
+.leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent;outline-offset:1px}
+.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+.leaflet-tile::selection{background:transparent}
+.leaflet-container .leaflet-overlay-pane svg{max-width:none!important;max-height:none!important}
+.leaflet-container .leaflet-tile-pane img,.leaflet-container img.leaflet-tile,.leaflet-container img.leaflet-image-layer{max-width:none!important;max-height:none!important;width:auto;padding:0}
+.leaflet-container img.leaflet-tile{mix-blend-mode:plus-lighter}
+.leaflet-container.leaflet-touch-zoom{touch-action:pan-x pan-y}
+.leaflet-container.leaflet-touch-drag{touch-action:none;touch-action:pinch-zoom}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom{touch-action:none}
+.leaflet-container{-webkit-user-select:none;user-select:none}
+.leaflet-tile{filter:inherit;visibility:hidden}
+.leaflet-tile-loaded{visibility:inherit}
+.leaflet-zoom-box{width:0;height:0;box-sizing:border-box;z-index:800}
+.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}
+.leaflet-map-pane canvas{z-index:100}.leaflet-map-pane svg{z-index:200}
+.leaflet-control{position:relative;z-index:800;pointer-events:auto}
+.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.leaflet-zoom-animated{transform-origin:0 0}
+svg.leaflet-zoom-animated{will-change:transform}
+.leaflet-zoom-anim .leaflet-zoom-animated{transition:transform .25s cubic-bezier(0,0,.25,1)}
+.leaflet-zoom-anim .leaflet-tile,.leaflet-pan-anim .leaflet-tile{transition:none}
+.leaflet-zoom-anim .leaflet-zoom-hide{visibility:hidden}
+.leaflet-interactive{cursor:pointer}
+.leaflet-grab{cursor:grab}
+.leaflet-dragging .leaflet-grab,.leaflet-dragging .leaflet-grab .leaflet-interactive{cursor:grabbing}
+.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-image-layer,.leaflet-pane>svg path,.leaflet-tile-container{pointer-events:none}
+.leaflet-marker-icon.leaflet-interactive,.leaflet-image-layer.leaflet-interactive,.leaflet-pane>svg path.leaflet-interactive{pointer-events:auto}
+.leaflet-tooltip{position:absolute;pointer-events:none}
+.leaflet-fade-anim .leaflet-popup{opacity:0;transition:opacity .2s linear}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <div id="map" data-i18n-aria="map_aria" aria-label="Mapa satelital de la estancia">
+    <div class="loadnote" id="loadnote">Cargando el mapa…</div>
+    <div class="mapctl">
+      <button type="button" id="zin" data-i18n-aria="zin" aria-label="Acercar">+</button>
+      <button type="button" id="zout" data-i18n-aria="zout" aria-label="Alejar">−</button>
+      <button type="button" id="zfit" data-i18n-aria="zfit" aria-label="Ver toda la estancia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button type="button" id="zgps" class="gps" data-i18n-aria="gps" aria-label="Mi ubicación"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 3 3 10.6l7.6 2.8L13.4 21z"/></svg></button>
+    </div>
+    <div class="where" id="where" hidden></div>
+  </div>
+
+  <aside class="panel">
+    <div class="brand">
+      <div>
+        <div class="eyebrow">Estancia El Campamento · Río Negro</div>
+        <h1>Los potreros</h1>
+      </div>
+      <div class="side">
+        <div class="lang" role="group" data-i18n-aria="lang_aria" aria-label="Idioma">
+          <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
+          <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
+        </div>
+        <div class="count" data-i18n-html="count">20 potreros<br>1011 ha</div>
+      </div>
+    </div>
+
+    <nav class="modes" data-i18n-aria="modes_aria" aria-label="Modo de aprendizaje">
+      <button type="button" data-mode="explore" aria-pressed="true"><span data-i18n="m_explore">Explorar</span><small data-i18n="m_explore_s">aprender</small></button>
+      <button type="button" data-mode="name" aria-pressed="false"><span data-i18n="m_name">Nombrar</span><small data-i18n="m_1">modo 1</small></button>
+      <button type="button" data-mode="find" aria-pressed="false"><span data-i18n="m_find">Ubicar</span><small data-i18n="m_2">modo 2</small></button>
+      <button type="button" data-mode="spell" aria-pressed="false"><span data-i18n="m_spell">Escribir</span><small data-i18n="m_3">modo 3</small></button>
+    </nav>
+
+    <!-- explore -->
+    <section id="explore" class="status">
+      <p class="prompt" data-i18n="ex_prompt">Tocá un potrero en el mapa para ver su nombre.</p>
+      <label class="toggle"><input type="checkbox" id="showall" checked> <span data-i18n="showall">Mostrar todos los nombres en el mapa</span></label>
+      <label class="toggle"><input type="checkbox" id="showgates" checked> <span data-i18n="showgates">Mostrar porteras (naranja)</span></label>
+      <div class="card" id="infocard">
+        <div class="num" id="i-num">Ejemplo · Potrero 18</div>
+        <div class="es" id="i-es">La Pista</div>
+        <div class="de" id="i-de">Die Piste</div>
+        <div class="meta"><span id="i-ha">88.3 ha</span></div>
+      </div>
+      <p class="hint" data-i18n="hint">Pellizcá para acercar o alejar y arrastrá para mover el mapa. Cada ronda recorre todos los potreros una vez, en orden al azar.</p>
+      <p class="offline" id="offline" hidden></p>
+      <div class="actions"><button type="button" class="btn primary" data-start="name" data-i18n="start1">Empezar modo 1</button></div>
+    </section>
+
+    <!-- quiz -->
+    <section id="quiz" class="status" hidden>
+      <div class="statusrow"><span><span data-i18n="q_question">Pregunta</span> <b id="q-i">1</b> <span data-i18n="q_of">de</span> <b id="q-n">20</b></span><span><span data-i18n="q_correct">Aciertos</span> <b id="q-ok">0</b></span></div>
+      <div class="bar"><i id="q-bar"></i></div>
+      <p class="prompt" id="q-prompt"></p>
+      <form class="typeform" id="typeform" autocomplete="off" hidden>
+        <input id="typein" type="text" inputmode="text" autocapitalize="words" autocorrect="off" spellcheck="false" data-i18n-ph="ph" placeholder="Nombre del potrero" data-i18n-aria="ph" aria-label="Nombre del potrero">
+        <button class="btn primary" type="submit" id="typesubmit" data-i18n="check">Comprobar</button>
+      </form>
+      <div class="feedback" id="fb" hidden></div>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="restart" data-i18n="restart">Reiniciar</button>
+      </div>
+      <div class="names" id="names" role="group" data-i18n-aria="names_aria" aria-label="Nombres de los potreros"></div>
+    </section>
+
+    <!-- result -->
+    <section id="result" class="status" hidden>
+      <div class="eyebrow" id="r-mode">Modo 1 · Nombrar</div>
+      <div class="score"><span class="big" id="r-score">0</span><span class="of" id="r-of">/ 20</span></div>
+      <p class="prompt" id="r-text"></p>
+      <div class="best" id="r-best"></div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="again" data-i18n="again">Jugar de nuevo</button>
+        <button type="button" class="btn ghost" id="toexplore" data-i18n="toexplore">Explorar el mapa</button>
+      </div>
+      <ul class="misses" id="r-misses"></ul>
+    </section>
+  </aside>
+</div>
+
+<script src="leaflet.js"></script>
+<script>
+const DATA = {"w":6502,"h":4408,"zmax":4,"tile":512,"origin_utm":[523309.626,6380853.945],"fields":[{"id":0,"es":"Casco","de":"Hof","ha":5.0,"ring":[[1692.2,1936.2],[1689.2,1940.2],[1689.2,1943.8],[1684.2,1954.2],[1679.2,1974.8],[1670.2,1999.8],[1656.2,2029.8],[1654.2,2031.2],[1646.2,2058.8],[1640.2,2072.2],[1629.2,2115.8],[1605.2,2169.2],[1605.2,2173.8],[1597.2,2195.2],[1597.2,2199.8],[1585.2,2237.8],[1672.2,2255.8],[1732.8,2260.8],[1732.8,2255.2],[1717.8,2199.8],[1718.2,2165.8],[1749.2,2153.8],[1772.8,2151.8],[1777.2,2149.8],[1790.8,2148.8],[1803.2,2145.8],[1828.8,2143.8],[1869.2,2134.8],[1896.8,2131.8],[1898.8,2130.8],[1898.8,2128.2],[1883.2,2119.2],[1879.8,2115.2],[1854.2,2098.2],[1833.8,2081.8],[1838.8,2059.2],[1843.8,2047.2],[1845.8,2045.8],[1849.8,2032.2],[1859.8,2009.8],[1859.8,1993.2],[1864.8,1969.2],[1844.8,1972.2],[1834.2,1972.2],[1812.8,1977.2],[1775.2,1982.2],[1767.8,1985.2],[1742.2,1986.2],[1723.2,1989.2],[1719.8,1985.8],[1719.8,1983.2],[1705.8,1954.2],[1694.8,1937.2]],"label":[1728.2,2071.2]},{"id":1,"es":"La Herradura","de":"Das Hufeisen","ha":97.3,"ring":[[5148.8,451.2],[5137.2,451.2],[5126.2,499.2],[5125.2,514.8],[5121.2,530.2],[5116.2,575.8],[5114.2,581.2],[5112.2,606.8],[5106.2,640.2],[5105.2,657.8],[5100.2,681.2],[5096.2,719.8],[5088.2,754.2],[5088.2,769.8],[5084.2,790.2],[5082.2,817.8],[5077.2,843.2],[5075.2,867.8],[5073.2,873.2],[5068.2,914.8],[5234.8,1004.8],[5236.2,1006.8],[5245.8,1010.8],[5247.2,1012.8],[5256.8,1016.8],[5258.2,1018.8],[5280.8,1029.8],[5282.2,1031.8],[5291.8,1035.8],[5293.2,1037.8],[5302.8,1041.8],[5304.2,1043.8],[5313.8,1047.8],[5315.2,1049.8],[5324.8,1053.8],[5326.2,1055.8],[5359.8,1072.8],[5361.2,1074.8],[5370.8,1078.8],[5372.2,1080.8],[5381.8,1084.8],[5383.2,1086.8],[5392.8,1090.8],[5394.2,1092.8],[5403.8,1096.8],[5405.2,1098.8],[5438.8,1115.8],[5440.2,1117.8],[5449.8,1121.8],[5451.2,1123.8],[5460.8,1127.8],[5462.2,1129.8],[5471.8,1133.8],[5473.2,1135.8],[5484.8,1140.8],[5486.2,1142.8],[5495.8,1146.8],[5497.2,1148.8],[5506.8,1152.8],[5552.2,1178.8],[5563.8,1183.8],[5565.2,1185.8],[5574.8,1189.8],[5620.2,1215.8],[5631.8,1220.8],[5633.2,1222.8],[5642.8,1226.8],[5644.2,1228.8],[5653.8,1232.8],[5699.2,1258.8],[5710.8,1263.8],[5720.2,1270.8],[5654.2,1399.8],[5652.2,1401.2],[5637.2,1432.8],[5635.2,1434.2],[5620.2,1465.8],[5618.2,1467.2],[5603.2,1498.8],[5601.2,1500.2],[5587.2,1529.8],[5585.2,1531.2],[5581.2,1541.8],[5578.8,1543.2],[4994.2,1440.2],[4990.2,1475.8],[4987.2,1488.2],[4986.2,1505.8],[4984.2,1511.2],[4983.2,1525.8],[4977.2,1558.2],[4976.2,1574.8],[4974.2,1580.2],[4973.2,1594.8],[4967.2,1627.2],[4967.2,1636.8],[4963.2,1657.2],[4962.2,1674.8],[4959.2,1687.2],[4958.2,1704.8],[4955.2,1717.2],[4954.2,1734.8],[4952.2,1740.2],[4951.2,1754.8],[4946.2,1780.2],[4944.2,1804.8],[4936.2,1849.2],[4930.2,1903.8],[4928.2,1909.2],[4923.2,1953.8],[4917.2,1986.2],[4916.2,2003.8],[4913.2,2016.2],[4903.2,2116.2],[4898.2,2227.8],[4896.2,2239.2],[4895.2,2279.8],[4893.2,2290.2],[4892.2,2331.8],[4890.2,2342.2],[4888.2,2392.8],[4884.2,2424.2],[4884.2,2444.8],[4882.2,2452.8],[5011.2,2494.8],[5052.8,2505.8],[5134.2,2531.8],[5138.8,2531.8],[5141.8,2528.8],[5236.8,2338.2],[5255.8,2304.8],[5271.8,2272.2],[5281.8,2255.8],[5297.8,2223.2],[5307.8,2206.8],[5323.8,2174.2],[5333.8,2157.8],[5349.8,2125.2],[5359.8,2108.8],[5375.8,2076.2],[5385.8,2059.8],[5401.8,2027.2],[5411.8,2010.8],[5436.8,1961.2],[5446.8,1944.8],[5480.8,1878.2],[5482.8,1876.8],[5568.8,1712.2],[5570.8,1710.8],[5603.8,1646.2],[5605.8,1644.8],[5612.8,1629.2],[5614.8,1627.8],[5647.8,1563.2],[5649.8,1561.8],[5651.8,1555.2],[5654.8,1552.8],[5661.8,1537.2],[5671.8,1520.8],[5687.8,1488.2],[5697.8,1471.8],[5713.8,1439.2],[5723.8,1422.8],[5748.8,1373.2],[5758.8,1356.8],[5774.8,1324.2],[5784.8,1307.8],[5800.8,1275.2],[5810.8,1258.8],[5826.8,1226.2],[5836.8,1209.8],[5852.8,1177.2],[5862.8,1160.8],[5869.8,1145.2],[5871.8,1143.8],[5878.8,1128.2],[5888.8,1111.8],[5895.8,1096.2],[5897.8,1094.8],[5904.8,1079.2],[5906.8,1077.8],[5912.8,1064.2],[5914.8,1062.8],[5921.8,1047.2],[5923.8,1045.8],[5930.8,1030.2],[5932.8,1028.8],[5938.8,1015.2],[5940.8,1013.8],[5947.8,998.2],[5949.8,996.8],[5956.8,981.2],[5958.8,979.8],[5964.8,966.2],[5966.8,964.8],[5973.8,949.2],[5975.8,947.8],[5982.8,932.2],[5984.8,930.8],[6051.8,803.8],[6050.8,801.2],[5545.2,612.2],[5521.8,589.2],[5516.2,588.2],[5506.8,583.2],[5455.2,565.2],[5453.8,563.2],[5442.2,560.2],[5429.8,554.2],[5370.2,533.2],[5352.8,525.2],[5280.2,499.2],[5270.8,494.2],[5248.2,487.2],[5243.8,484.2]],"label":[5225.2,1762.2],"no":"1 + 2"},{"id":3,"es":"El Rincón","de":"Der Winkel","ha":29.0,"ring":[[5078.8,719.2],[4843.8,774.2],[4839.2,774.2],[4741.8,799.2],[4733.2,800.2],[4731.2,802.2],[4731.2,814.8],[4631.2,1562.8],[4704.2,1594.8],[4718.8,1599.8],[4783.2,1631.8],[4785.8,1631.8],[4886.8,1686.8],[4888.2,1688.8],[4897.8,1692.8],[4917.2,1704.8],[4926.8,1708.8],[4937.2,1715.8],[4938.8,1715.8],[4940.8,1704.8],[4941.8,1687.2],[4944.8,1674.8],[4945.8,1657.2],[4949.8,1636.8],[4949.8,1627.2],[4955.8,1594.8],[4956.8,1580.2],[4958.8,1574.8],[4959.8,1558.2],[4965.8,1525.8],[4966.8,1511.2],[4968.8,1505.8],[4973.8,1458.2],[4979.8,1425.8],[4980.8,1408.2],[4986.8,1375.8],[4987.8,1361.2],[4989.8,1355.8],[4994.8,1312.2],[4996.8,1306.8],[5001.8,1259.2],[5007.8,1226.8],[5008.8,1212.2],[5010.8,1206.8],[5011.8,1189.2],[5017.8,1156.8],[5018.8,1139.2],[5021.8,1126.8],[5022.8,1109.2],[5028.8,1076.8],[5033.8,1032.2],[5035.8,1026.8],[5037.8,1002.2],[5045.8,957.8],[5046.8,940.2],[5049.8,927.8],[5050.8,910.2],[5053.8,897.8],[5054.8,880.2],[5057.8,867.8],[5058.8,850.2],[5064.8,817.8],[5066.8,790.2],[5070.8,769.8],[5070.8,754.2]],"label":[4878.2,942.2]},{"id":4,"es":"El Triángulo","de":"Das Dreieck","ha":33.3,"ring":[[4731.8,803.2],[4722.2,803.2],[4557.8,851.2],[4179.2,945.2],[4070.8,982.2],[4049.2,980.2],[4042.2,989.8],[4019.2,1014.2],[3985.2,1059.8],[3974.2,1072.2],[3966.2,1084.2],[3966.2,1089.8],[3970.2,1095.8],[4036.2,1162.8],[4103.8,1218.8],[4142.2,1257.8],[4180.8,1287.8],[4194.2,1303.8],[4207.2,1316.2],[4212.2,1326.8],[4217.2,1332.8],[4239.2,1350.8],[4253.8,1358.8],[4313.2,1416.8],[4327.2,1425.8],[4376.8,1441.8],[4413.8,1462.8],[4418.2,1466.8],[4420.8,1466.8],[4486.2,1498.8],[4525.8,1512.8],[4591.2,1546.8],[4630.8,1562.8]],"label":[4417.2,1153.2]},{"id":5,"es":"El Molino","de":"Die Windmühle","ha":45.3,"ring":[[4237.2,1349.2],[4235.2,1352.2],[4232.2,1366.8],[4226.2,1384.2],[4193.2,1517.8],[4191.2,1521.2],[4170.2,1607.8],[4168.2,1611.2],[4103.2,1883.2],[4103.2,1887.8],[4079.2,1980.8],[4077.2,1984.2],[4072.2,2007.8],[4070.2,2011.2],[4065.2,2034.8],[4063.2,2038.2],[4059.2,2057.8],[4057.2,2061.2],[4051.2,2089.8],[4072.2,2091.8],[4886.8,2109.8],[4895.8,2016.2],[4898.8,2003.8],[4899.8,1986.2],[4905.8,1953.8],[4910.8,1909.2],[4912.8,1903.8],[4917.8,1856.2],[4920.8,1843.8],[4924.8,1810.2],[4926.8,1804.8],[4927.8,1787.2],[4930.8,1774.8],[4930.8,1767.2],[4933.8,1754.8],[4938.8,1716.2],[4861.2,1674.2],[4859.8,1672.2],[4850.2,1668.2],[4803.8,1641.2],[4731.8,1606.2],[4591.2,1547.2],[4525.8,1513.2],[4479.2,1496.2],[4437.8,1475.2],[4418.2,1467.2],[4413.8,1463.2],[4376.8,1442.2],[4327.2,1426.2],[4313.2,1417.2],[4253.8,1359.2]],"label":[4430.2,1800.2]},{"id":6,"es":"El Codo","de":"Der Ellbogen","ha":46.1,"ring":[[4050.2,2090.2],[4052.2,2170.8],[4055.2,2198.8],[4173.2,2849.8],[4245.2,2814.8],[4247.8,2814.8],[4324.2,2777.8],[4339.8,2771.8],[4356.2,2762.8],[4358.8,2762.8],[4371.2,2755.8],[4380.8,2752.8],[4399.2,2742.8],[4416.8,2735.8],[4418.2,2733.8],[4440.8,2724.8],[4478.2,2705.8],[4480.8,2705.8],[4482.2,2703.8],[4504.8,2694.8],[4548.2,2672.8],[4555.8,2670.8],[4593.2,2651.8],[4622.8,2639.8],[4655.2,2623.8],[4669.8,2618.8],[4710.2,2598.8],[4719.8,2595.8],[4756.2,2577.8],[4781.8,2567.8],[4807.2,2554.8],[4833.8,2543.8],[4867.8,2526.8],[4874.8,2521.8],[4878.8,2457.2],[4874.8,2459.2],[4869.2,2457.2],[4865.8,2450.8],[4865.8,2445.2],[4870.8,2392.8],[4872.8,2342.2],[4874.8,2331.8],[4875.8,2290.2],[4877.8,2279.8],[4878.8,2239.2],[4880.8,2227.8],[4882.8,2167.2],[4884.8,2155.8],[4886.8,2110.2],[4072.2,2092.2]],"label":[4401.2,2401.2]},{"id":7,"es":"La Pradera Vieja","de":"Die alte Weide","ha":54.6,"ring":[[4049.8,2091.2],[4040.8,2093.2],[4012.2,2093.2],[3946.2,2090.2],[3871.2,2092.2],[3845.2,2095.2],[3830.2,2101.2],[3798.8,2126.2],[3774.2,2134.2],[3753.8,2146.2],[3744.2,2147.2],[3716.8,2154.2],[3631.2,2154.2],[3541.8,2146.2],[3365.2,2146.2],[3366.2,2166.8],[3393.2,2294.8],[3401.2,2317.2],[3404.2,2330.8],[3412.2,2353.2],[3415.2,2366.8],[3427.2,2402.2],[3430.2,2415.8],[3438.2,2438.2],[3441.2,2451.8],[3449.2,2474.2],[3452.2,2487.8],[3460.2,2510.2],[3463.2,2523.8],[3475.2,2559.2],[3478.2,2572.8],[3486.2,2595.2],[3489.2,2608.8],[3497.2,2631.2],[3500.2,2644.8],[3512.2,2680.2],[3515.2,2693.8],[3523.2,2716.2],[3526.2,2729.8],[3534.2,2752.2],[3537.2,2765.8],[3545.2,2788.2],[3548.2,2801.8],[3560.2,2837.2],[3563.2,2850.8],[3571.2,2873.2],[3574.2,2886.8],[3578.2,2896.2],[3578.2,2899.8],[3582.2,2909.2],[3585.2,2922.8],[3589.2,2932.2],[3589.2,2935.8],[3593.2,2945.2],[3596.2,2958.8],[3600.2,2968.2],[3600.2,2971.8],[3604.2,2981.2],[3604.2,2984.8],[3608.2,2994.2],[3608.2,2997.8],[3638.2,3094.8],[3656.8,3087.8],[3684.2,3073.8],[3693.8,3070.8],[3708.2,3062.8],[3710.8,3062.8],[3753.2,3041.8],[3785.8,3027.8],[3806.2,3016.8],[3824.8,3009.8],[3826.2,3007.8],[3828.8,3007.8],[3843.2,2999.8],[3852.8,2996.8],[3876.2,2984.8],[3898.8,2975.8],[3900.2,2973.8],[3902.8,2973.8],[3954.2,2948.8],[4008.2,2926.8],[4011.8,2926.8],[4025.2,2920.8],[4054.8,2911.8],[4097.8,2889.8],[4099.2,2887.8],[4128.8,2873.8],[4143.2,2864.8],[4172.8,2850.8],[4054.8,2198.8],[4051.8,2170.8]],"label":[3780.2,2473.2]},{"id":8,"es":"La Tapera","de":"Die Ruine","ha":96.8,"ring":[[2047.2,2089.2],[2048.2,2094.8],[2051.2,2098.8],[2066.8,2109.8],[2088.2,2134.8],[2097.8,2140.8],[2106.2,2148.8],[2120.8,2158.8],[2129.2,2166.8],[2134.8,2169.8],[2143.2,2177.8],[2171.8,2198.8],[2180.2,2206.8],[2185.8,2209.8],[2194.2,2217.8],[2199.8,2220.8],[2341.2,2332.8],[2844.2,2691.2],[2888.2,2808.8],[2892.2,2816.2],[2896.2,2829.8],[2900.2,2837.2],[2907.2,2858.8],[2911.2,2866.2],[2918.2,2887.8],[2922.2,2895.2],[2926.2,2908.8],[2930.2,2916.2],[2937.2,2937.8],[2941.2,2945.2],[2948.2,2966.8],[2952.2,2974.2],[2956.2,2987.8],[2960.2,2995.2],[2967.2,3016.8],[2971.2,3024.2],[2978.2,3045.8],[2982.2,3053.2],[2986.2,3066.8],[2990.2,3074.2],[2997.2,3095.8],[3001.2,3103.2],[3008.2,3124.8],[3020.2,3153.2],[3027.2,3174.8],[3039.2,3203.2],[3046.2,3224.8],[3050.2,3232.2],[3057.2,3253.8],[3061.2,3261.2],[3062.2,3266.8],[3144.2,3246.8],[3161.8,3243.8],[3177.2,3238.8],[3186.8,3237.8],[3220.2,3228.8],[3238.8,3225.8],[3334.2,3202.8],[3370.8,3195.8],[3378.2,3192.8],[3461.8,3173.8],[3484.8,3165.8],[3494.2,3160.8],[3502.8,3158.8],[3516.2,3151.8],[3518.8,3151.8],[3520.2,3149.8],[3534.8,3144.8],[3553.2,3134.8],[3555.8,3134.8],[3557.2,3132.8],[3566.8,3129.8],[3587.2,3118.8],[3589.8,3118.8],[3610.2,3107.8],[3615.8,3106.8],[3637.8,3095.8],[3607.8,2994.2],[3592.8,2948.8],[3592.8,2945.2],[3584.8,2922.8],[3581.8,2909.2],[3573.8,2886.8],[3570.8,2873.2],[3562.8,2850.8],[3559.8,2837.2],[3536.8,2765.8],[3533.8,2752.2],[3525.8,2729.8],[3522.8,2716.2],[3514.8,2693.8],[3511.8,2680.2],[3488.8,2608.8],[3485.8,2595.2],[3477.8,2572.8],[3474.8,2559.2],[3451.8,2487.8],[3448.8,2474.2],[3440.8,2451.8],[3437.8,2438.2],[3429.8,2415.8],[3426.8,2402.2],[3392.8,2294.8],[3365.8,2166.8],[3363.8,2108.2],[3355.8,2074.2],[3353.8,2071.2],[3294.8,2075.2],[3264.2,2075.2],[2700.2,2032.2],[2692.8,2034.2],[2094.2,2083.2]],"label":[3058.2,2411.2]},{"id":9,"es":"El Embarcadero","de":"Die Verladung","ha":23.8,"ring":[[2311.2,2358.2],[2308.2,2362.8],[2365.2,2477.8],[2400.2,2533.2],[2407.2,2546.8],[2411.2,2551.2],[2418.2,2564.8],[2422.2,2569.2],[2429.2,2582.8],[2433.2,2587.2],[2440.2,2600.8],[2444.2,2605.2],[2451.2,2618.8],[2455.2,2623.2],[2500.2,2709.8],[2522.2,2747.8],[2581.2,2838.8],[2642.2,2919.2],[2656.2,2946.8],[2713.2,3035.2],[2777.2,3159.8],[2805.2,3191.2],[2827.2,3227.8],[2871.2,3283.2],[2883.2,3310.8],[2981.2,3286.8],[2985.8,3286.8],[3061.8,3266.8],[3060.8,3261.2],[3056.8,3253.8],[3049.8,3232.2],[3045.8,3224.8],[3038.8,3203.2],[3026.8,3174.8],[3019.8,3153.2],[3015.8,3145.8],[3011.8,3132.2],[3007.8,3124.8],[3000.8,3103.2],[2996.8,3095.8],[2989.8,3074.2],[2985.8,3066.8],[2981.8,3053.2],[2977.8,3045.8],[2970.8,3024.2],[2966.8,3016.8],[2959.8,2995.2],[2955.8,2987.8],[2951.8,2974.2],[2947.8,2966.8],[2940.8,2945.2],[2936.8,2937.8],[2929.8,2916.2],[2925.8,2908.8],[2921.8,2895.2],[2917.8,2887.8],[2910.8,2866.2],[2906.8,2858.8],[2899.8,2837.2],[2895.8,2829.8],[2891.8,2816.2],[2887.8,2808.8],[2843.8,2691.2],[2349.2,2339.2],[2345.8,2335.2],[2342.2,2335.2]],"label":[2723.2,2786.2]},{"id":10,"es":"El Tajamar","de":"Der Damm","ha":27.4,"ring":[[2833.8,3322.2],[2820.8,3290.2],[2807.8,3266.2],[2782.8,3229.2],[2751.8,3190.8],[2716.8,3137.8],[2704.8,3112.2],[2701.8,3109.8],[2666.8,3058.2],[2568.2,3067.2],[2254.8,3109.2],[2133.2,3117.2],[1911.2,3148.2],[1921.2,3204.8],[1940.2,3268.2],[1946.2,3317.8],[1955.2,3356.2],[1961.2,3412.8],[1982.2,3482.2],[1986.2,3526.8],[2073.2,3500.8],[2099.8,3495.8],[2111.2,3491.8],[2120.8,3490.8],[2264.2,3455.8],[2360.8,3434.8],[2404.2,3422.8],[2510.8,3398.8],[2521.2,3394.8],[2631.8,3369.8],[2639.2,3366.8],[2647.8,3365.8],[2735.2,3343.8],[2739.8,3343.8],[2751.2,3339.8],[2821.8,3325.8],[2828.2,3322.8],[2832.8,3323.8]],"label":[2142.2,3297.2]},{"id":11,"es":"El Puente","de":"Die Brücke","ha":85.9,"ring":[[1567.2,2234.2],[1549.2,2279.8],[1537.2,2303.8],[1525.2,2324.2],[1464.2,2442.8],[1438.2,2481.2],[1438.2,2483.8],[1415.2,2531.8],[1410.2,2538.2],[1405.2,2548.8],[1400.8,2553.2],[1396.2,2554.2],[1394.8,2552.8],[1381.8,2530.2],[1364.8,2508.8],[1351.8,2489.2],[1305.8,2441.8],[1275.8,2390.2],[1252.8,2370.2],[1245.2,2370.2],[1225.8,2386.2],[1203.2,2394.2],[1166.2,2414.2],[1133.8,2445.2],[1125.2,2449.2],[1120.8,2453.2],[853.2,2619.2],[847.2,2624.8],[930.8,2652.8],[1090.8,2732.8],[1190.2,2852.2],[1280.2,3013.8],[1372.2,3155.2],[1452.2,3296.2],[1511.2,3454.2],[1590.2,3853.8],[1620.2,3957.8],[1758.8,3971.8],[1775.8,3964.8],[1786.8,3953.8],[1799.8,3932.8],[1799.8,3930.2],[1812.8,3904.8],[1820.8,3871.2],[1831.8,3841.2],[1850.8,3805.2],[1852.8,3803.8],[1894.8,3715.8],[1934.8,3620.8],[1951.8,3571.2],[1985.8,3527.8],[1983.8,3500.2],[1979.8,3474.2],[1960.8,3412.8],[1954.8,3356.2],[1945.8,3317.8],[1939.8,3268.2],[1920.8,3204.8],[1896.8,3070.2],[1863.8,2943.8],[1848.8,2859.2],[1799.8,2656.8],[1772.8,2462.2],[1760.8,2412.8],[1750.8,2338.2],[1742.8,2307.8],[1734.8,2263.2],[1733.8,2261.2],[1672.2,2256.2],[1590.2,2240.2],[1586.8,2238.2],[1570.2,2236.2]],"label":[1526.2,2829.2]},{"id":12,"es":"La Bomba","de":"Die Pumpe","ha":54.9,"ring":[[1718.2,2166.2],[1718.2,2199.8],[1733.2,2255.2],[1733.2,2260.8],[1735.2,2263.2],[1743.2,2307.8],[1751.2,2338.2],[1761.2,2412.8],[1773.2,2462.2],[1800.2,2656.8],[1849.2,2859.2],[1864.2,2943.8],[1897.2,3070.2],[1911.2,3147.8],[2133.2,3116.8],[2254.8,3108.8],[2568.2,3066.8],[2636.2,3059.8],[2655.8,3059.8],[2665.8,3057.8],[2662.8,3050.2],[2611.8,2962.2],[2605.8,2954.8],[2599.8,2943.2],[2593.8,2935.8],[2592.8,2932.2],[2586.8,2924.8],[2580.8,2913.2],[2574.8,2905.8],[2568.8,2894.2],[2562.8,2886.8],[2556.8,2875.2],[2550.8,2867.8],[2544.8,2856.2],[2475.8,2748.8],[2455.8,2708.2],[2382.8,2589.8],[2342.8,2513.2],[2264.8,2397.8],[2263.8,2394.2],[2239.2,2383.2],[2179.8,2331.2],[2095.2,2281.2],[2033.8,2231.2],[1956.2,2178.2],[1926.2,2154.2],[1900.8,2130.2],[1896.8,2132.2],[1869.2,2135.2],[1822.8,2145.2],[1803.2,2146.2],[1790.8,2149.2],[1777.2,2150.2],[1772.8,2152.2],[1749.2,2154.2]],"label":[2153.2,2805.2]},{"id":13,"es":"El Medio","de":"Die Mitte","ha":91.8,"ring":[[1245.8,998.2],[1237.2,1003.2],[1128.2,1095.2],[1050.2,1213.2],[1010.2,1353.2],[991.2,1504.2],[991.2,1512.8],[989.2,1514.2],[911.2,1670.2],[911.2,1672.8],[789.8,1814.2],[655.2,1928.2],[645.2,1938.2],[531.2,2071.2],[473.2,2148.2],[469.2,2157.2],[451.2,2247.2],[451.2,2256.8],[510.2,2452.8],[689.2,2572.8],[844.2,2624.8],[846.8,2624.8],[853.2,2618.8],[856.8,2617.8],[1132.8,2444.8],[1033.8,2285.8],[954.8,2103.2],[995.2,2062.8],[1021.2,2042.8],[1029.8,2038.8],[1112.2,1986.8],[1165.8,1959.8],[1193.2,1941.8],[1257.8,1903.8],[1347.2,1836.8],[1350.8,1835.8],[1428.2,1783.8],[1550.8,1716.8],[1555.2,1712.8],[1558.8,1711.8],[1572.2,1713.8],[1626.8,1714.8],[1671.8,1719.8],[1844.8,1346.8],[1844.8,1343.2],[1841.8,1341.2],[1801.2,1319.2],[1794.8,1314.2],[1660.2,1238.2],[1613.8,1210.2],[1251.2,1003.2]],"label":[1338.2,1441.2]},{"id":14,"es":"La Pradera de la Casa","de":"Die Hausweide","ha":35.6,"ring":[[1769.8,1737.2],[1700.8,1723.2],[1680.2,1721.2],[1673.8,1719.2],[1670.2,1720.2],[1626.8,1715.2],[1572.2,1714.2],[1558.8,1712.2],[1555.2,1713.2],[1550.8,1717.2],[1428.2,1784.2],[1350.8,1836.2],[1347.2,1837.2],[1257.8,1904.2],[1239.2,1914.2],[1234.8,1918.2],[1216.2,1928.2],[1165.8,1960.2],[1112.2,1987.2],[1068.8,2015.2],[1021.2,2043.2],[995.2,2063.2],[955.2,2103.2],[1034.2,2285.8],[1133.2,2444.8],[1166.2,2413.8],[1203.2,2393.8],[1225.8,2385.8],[1243.2,2370.8],[1252.8,2369.8],[1276.2,2390.2],[1306.2,2441.8],[1352.2,2489.2],[1365.2,2508.8],[1382.2,2530.2],[1395.2,2552.8],[1400.8,2552.8],[1404.8,2548.8],[1422.8,2515.8],[1437.8,2481.2],[1463.8,2442.8],[1524.8,2324.2],[1536.8,2303.8],[1548.8,2279.8],[1565.8,2235.2],[1567.8,2233.8],[1570.2,2235.8],[1580.2,2237.8],[1584.8,2237.8],[1585.8,2235.8],[1596.8,2199.8],[1596.8,2195.2],[1604.8,2173.8],[1604.8,2169.2],[1628.8,2115.8],[1639.8,2072.2],[1645.8,2058.8],[1653.8,2031.2],[1655.8,2029.8],[1669.8,1999.8],[1678.8,1974.8],[1683.8,1954.2],[1688.8,1943.8],[1688.8,1940.2],[1692.8,1935.8],[1692.8,1933.2],[1704.8,1911.8],[1715.8,1882.2],[1736.8,1841.8],[1752.8,1801.8],[1771.8,1744.8],[1771.8,1739.2]],"label":[1338.2,2139.2]},{"id":15,"es":"El Piquete","de":"Der Pflock","ha":41.1,"ring":[[1693.2,1935.8],[1706.2,1954.2],[1716.2,1974.2],[1720.2,1985.8],[1723.2,1988.8],[1728.8,1988.8],[1742.2,1985.8],[1767.8,1984.8],[1775.2,1981.8],[1812.8,1976.8],[1834.2,1971.8],[1860.8,1969.8],[1881.2,1964.8],[1929.8,1959.8],[1940.2,1956.8],[1962.8,1953.8],[1967.2,1951.8],[1970.8,1952.8],[1979.2,1950.8],[2022.8,1946.8],[2141.2,1916.8],[2604.8,1848.8],[2607.8,1847.8],[2615.8,1837.8],[2728.8,1668.2],[2699.8,1654.2],[2622.2,1628.2],[2561.8,1598.2],[2387.2,1523.2],[2348.8,1502.2],[2332.8,1496.2],[2318.2,1492.2],[2315.8,1490.2],[2293.2,1483.2],[2237.8,1462.2],[2140.2,1434.2],[2103.8,1422.2],[2093.2,1420.2],[2090.8,1418.2],[2068.2,1411.2],[2064.8,1406.2],[2042.2,1401.2],[2038.8,1399.2],[2001.2,1394.2],[1996.8,1391.2],[1978.8,1385.2],[1975.2,1385.2],[1845.2,1344.2],[1842.2,1353.8],[1835.2,1366.2],[1829.2,1381.8],[1822.2,1394.2],[1810.2,1422.8],[1803.2,1435.2],[1797.2,1450.8],[1790.2,1463.2],[1778.2,1491.8],[1771.2,1504.2],[1765.2,1519.8],[1758.2,1532.2],[1752.2,1547.8],[1745.2,1560.2],[1745.2,1562.8],[1673.2,1716.2],[1674.2,1719.8],[1689.8,1720.8],[1751.2,1733.8],[1756.8,1733.8],[1769.8,1736.8],[1772.2,1739.2],[1772.2,1744.8],[1753.2,1801.8],[1737.2,1841.8],[1716.2,1882.2],[1705.2,1911.8],[1697.2,1925.2]],"label":[2024.2,1671.2]},{"id":16,"es":"La Chacrita","de":"Das kleine Feld","ha":11.2,"ring":[[2701.8,2031.8],[2694.8,2014.2],[2674.8,1975.8],[2674.8,1973.2],[2659.8,1944.8],[2659.8,1942.2],[2635.8,1904.2],[2608.8,1868.8],[2602.8,1849.2],[2141.2,1917.2],[2035.2,1943.2],[2027.8,1946.2],[1970.2,1953.2],[1993.2,2007.8],[2002.2,2020.2],[2037.2,2078.8],[2047.2,2088.8],[2094.2,2082.8],[2573.8,2043.8],[2585.2,2041.8],[2692.8,2033.8]],"label":[2549.2,1948.2]},{"id":17,"es":"La Entrada","de":"Der Eingang","ha":6.9,"ring":[[1865.2,1969.2],[1860.2,1993.2],[1860.2,2009.8],[1850.2,2032.2],[1846.2,2045.8],[1844.2,2047.2],[1839.2,2059.2],[1834.2,2081.8],[1865.2,2105.8],[1879.8,2114.8],[1883.2,2118.8],[1898.8,2127.8],[1899.2,2129.8],[1914.8,2141.8],[1926.2,2153.8],[1956.2,2177.8],[2033.8,2230.8],[2095.2,2280.8],[2179.8,2330.8],[2239.2,2382.8],[2262.2,2393.8],[2264.8,2393.8],[2339.2,2336.8],[2343.8,2334.8],[2259.2,2269.2],[2250.8,2261.2],[2245.2,2258.2],[2236.8,2250.2],[2231.2,2247.2],[2222.8,2239.2],[2208.2,2229.2],[2199.8,2221.2],[2194.2,2218.2],[2185.8,2210.2],[2180.2,2207.2],[2171.8,2199.2],[2157.2,2189.2],[2148.8,2181.2],[2143.2,2178.2],[2134.8,2170.2],[2129.2,2167.2],[2120.8,2159.2],[2106.2,2149.2],[2097.8,2141.2],[2088.2,2135.2],[2066.8,2110.2],[2050.8,2098.8],[2047.8,2094.8],[2046.8,2088.2],[2036.8,2078.8],[2001.8,2020.2],[1992.8,2007.8],[1989.8,1998.2],[1968.8,1952.2],[1929.8,1960.2],[1895.2,1963.2]],"label":[1925.2,2051.2]},{"id":18,"es":"La Pista","de":"Die Piste","ha":83.8,"ring":[[2955.2,885.2],[2959.2,892.8],[2953.8,898.2],[2938.2,909.2],[2929.8,918.2],[2830.2,1006.2],[2703.8,1130.2],[2702.2,1130.2],[2583.8,1250.2],[2553.2,1276.2],[2506.8,1327.2],[2435.2,1386.2],[2391.2,1430.2],[2386.2,1437.8],[2377.2,1446.2],[2352.2,1475.8],[2332.2,1495.8],[2348.8,1501.8],[2387.2,1522.8],[2561.8,1597.8],[2622.2,1627.8],[2699.8,1653.8],[2729.2,1668.2],[2616.2,1837.8],[2607.8,1848.2],[2603.2,1849.2],[2609.2,1868.8],[2636.2,1904.2],[2660.2,1942.2],[2660.2,1944.8],[2703.2,2032.8],[3264.2,2074.8],[3294.8,2074.8],[3353.8,2070.8],[3354.8,2068.2],[3351.8,2053.8],[3347.8,2017.2],[3334.8,1953.8],[3334.8,1948.2],[3320.8,1898.8],[3318.8,1885.8],[3319.8,1874.2],[3311.8,1816.8],[3306.8,1740.2],[3290.8,1669.2],[3292.8,1665.8],[3316.8,1523.2],[3318.8,1519.8],[3329.8,1472.2],[3335.8,1452.8],[3444.8,908.2]],"label":[2967.2,1388.2]},{"id":19,"es":"El Caraguatá","de":"Die Distel","ha":45.7,"ring":[[3335.2,1455.2],[3319.2,1519.8],[3317.2,1523.2],[3296.2,1648.8],[3291.2,1670.8],[3307.2,1740.2],[3312.2,1816.8],[3320.2,1874.2],[3319.2,1885.8],[3321.2,1898.8],[3333.2,1938.2],[3343.2,1995.8],[3347.2,2011.2],[3355.2,2068.2],[3354.2,2071.8],[3356.2,2074.2],[3364.2,2108.2],[3365.2,2145.8],[3541.8,2145.8],[3631.2,2153.8],[3716.8,2153.8],[3744.2,2146.8],[3753.8,2145.8],[3774.2,2133.8],[3798.8,2125.8],[3827.2,2102.8],[3845.2,2094.8],[3871.2,2091.8],[3946.2,2089.8],[4040.8,2092.8],[4050.8,2089.8],[4056.8,2061.2],[4058.8,2057.8],[4062.8,2038.2],[4064.8,2034.8],[4069.8,2011.2],[4071.8,2007.8],[4076.8,1984.2],[4078.8,1980.8],[4102.8,1887.8],[4102.8,1883.2],[4159.8,1645.2],[4143.2,1642.2],[4139.8,1640.2],[4096.2,1630.2],[4092.8,1628.2],[4049.2,1618.2],[3994.8,1603.2],[3842.2,1576.2],[3683.8,1533.2],[3451.2,1484.2]],"label":[3626.2,1838.2]},{"id":20,"es":"El Sorgo","de":"Das Sorghum","ha":44.3,"ring":[[3445.2,909.2],[3335.2,1454.8],[3451.2,1483.8],[3683.8,1532.8],[3842.2,1575.8],[3994.8,1602.8],[4049.2,1617.8],[4092.8,1627.8],[4096.2,1629.8],[4139.8,1639.8],[4143.2,1641.8],[4159.8,1644.8],[4225.8,1384.2],[4236.8,1348.2],[4213.8,1329.8],[4206.8,1316.2],[4193.8,1303.8],[4180.8,1288.2],[4142.2,1258.2],[4103.8,1219.2],[4036.2,1163.2],[3966.8,1091.8],[3965.8,1084.2],[3970.8,1076.2],[4018.8,1014.2],[4041.8,989.8],[4048.8,980.2],[3954.8,974.2],[3879.2,977.2],[3528.8,921.2]],"label":[3722.2,1244.2]},{"id":21,"es":"El Cementerio","de":"Der Friedhof","ha":74.4,"ring":[[1245.2,997.8],[1251.2,1002.8],[1291.8,1024.8],[1298.2,1029.8],[1338.8,1051.8],[1345.2,1056.8],[1378.8,1074.8],[1385.2,1079.8],[1425.8,1101.8],[1432.2,1106.8],[1472.8,1128.8],[1479.2,1133.8],[1519.8,1155.8],[1526.2,1160.8],[1566.8,1182.8],[1573.2,1187.8],[1613.8,1209.8],[1620.2,1214.8],[1653.8,1232.8],[1660.2,1237.8],[1700.8,1259.8],[1707.2,1264.8],[1747.8,1286.8],[1754.2,1291.8],[1845.2,1343.8],[1975.2,1384.8],[1978.8,1384.8],[1996.8,1390.8],[2001.2,1393.8],[2038.8,1398.8],[2042.2,1400.8],[2064.8,1405.8],[2068.2,1410.8],[2090.8,1417.8],[2093.2,1419.8],[2103.8,1421.8],[2140.2,1433.8],[2237.8,1461.8],[2331.8,1495.8],[2351.8,1475.8],[2359.8,1465.2],[2385.8,1437.8],[2390.8,1430.2],[2435.2,1385.8],[2506.8,1326.8],[2553.2,1275.8],[2583.8,1249.8],[2702.2,1129.8],[2703.8,1129.8],[2830.2,1005.8],[2929.8,917.8],[2938.2,908.8],[2953.8,897.8],[2958.8,891.2],[2953.8,884.2],[2951.2,885.2],[2678.8,816.2],[2674.2,816.2],[2397.8,746.2],[2393.2,746.2],[2120.8,677.2],[2116.2,677.2],[2016.2,652.2],[2014.2,650.2],[2010.2,660.2],[1992.2,728.8],[1988.8,734.2],[1791.2,832.2],[1789.8,834.2],[1785.2,834.2],[1593.2,882.2],[1589.8,884.2],[1585.2,884.2],[1393.2,932.2],[1256.2,990.2],[1248.2,994.2]],"label":[2224.2,1077.2]}],"excluded":{"ring":[[5060.0,910.4],[5720.1,1269.6],[5579.5,1542.5],[4985.9,1438.1]],"label":[5232.9,1257.4]},"gates":[{"n":1,"p":[5516.5,588.0],"yaw":26.0,"t":"outside | 1 La Herradura"},{"n":2,"p":[2822.0,1014.5],"yaw":135.0,"t":"18 La Pista | 21 El Cementerio"},{"n":3,"p":[3437.0,949.5],"yaw":101.4,"t":"18 La Pista | 20 El Sorgo"},{"n":4,"p":[1699.5,1260.0],"yaw":30.3,"t":"13 El Medio | 21 El Cementerio"},{"n":5,"p":[2274.5,1476.0],"yaw":19.8,"t":"15 El Piquete | 21 El Cementerio"},{"n":6,"p":[2356.5,1470.0],"yaw":131.2,"t":"18 La Pista | 21 El Cementerio"},{"n":7,"p":[3366.5,1463.0],"yaw":13.2,"t":"19 El Caraguatá | 20 El Sorgo"},{"n":8,"p":[3983.5,1109.0],"yaw":45.0,"t":"4 El Triángulo | 20 El Sorgo"},{"n":9,"p":[4336.5,1429.0],"yaw":18.7,"t":"4 El Triángulo | 5 El Molino"},{"n":10,"p":[4682.0,1178.5],"yaw":97.6,"t":"3 El Rincón | 4 El Triángulo"},{"n":11,"p":[4969.0,1498.5],"yaw":96.5,"t":"3 El Rincón | east road"},{"n":12,"p":[4987.0,1497.5],"yaw":96.6,"t":"1 La Herradura | east road"},{"n":13,"p":[5787.5,1302.0],"yaw":117.6,"t":"outside | 1 La Herradura"},{"n":14,"p":[1476.5,1758.0],"yaw":151.9,"t":"13 El Medio | 14 La Pradera de la Casa"},{"n":15,"p":[1696.0,1667.5],"yaw":115.3,"t":"13 El Medio | 15 El Piquete"},{"n":16,"p":[1705.0,1911.5],"yaw":113.8,"t":"14 La Pradera de la Casa | 15 El Piquete"},{"n":17,"p":[1715.0,1972.5],"yaw":65.0,"t":"15 El Piquete | 0 Casco + Mangas"},{"n":18,"p":[1841.0,2056.5],"yaw":110.3,"t":"17 La Entrada | 0 Casco + Mangas"},{"n":19,"p":[1858.0,2014.5],"yaw":109.3,"t":"17 La Entrada | 0 Casco + Mangas"},{"n":20,"p":[2036.0,2075.5],"yaw":55.8,"t":"16 La Chacrita | 17 La Entrada"},{"n":21,"p":[2051.0,2098.5],"yaw":47.2,"t":"8 La Tapera | 17 La Entrada"},{"n":22,"p":[2546.5,1858.0],"yaw":171.6,"t":"15 El Piquete | 16 La Chacrita"},{"n":23,"p":[2636.0,1807.5],"yaw":123.6,"t":"15 El Piquete | 18 La Pista"},{"n":24,"p":[2941.5,2050.0],"yaw":3.7,"t":"8 La Tapera | 18 La Pista"},{"n":25,"p":[3299.0,1628.5],"yaw":100.2,"t":"18 La Pista | 19 El Caraguatá"},{"n":26,"p":[4112.5,1634.0],"yaw":13.9,"t":"19 El Caraguatá | 20 El Sorgo"},{"n":27,"p":[4147.0,1700.5],"yaw":103.2,"t":"5 El Molino | 19 El Caraguatá"},{"n":28,"p":[4910.0,1917.5],"yaw":98.0,"t":"5 El Molino | east road"},{"n":29,"p":[4928.5,1711.0],"yaw":28.8,"t":"3 El Rincón | 5 El Molino"},{"n":30,"p":[1099.5,2466.0],"yaw":148.1,"t":"11 El Puente | 13 El Medio"},{"n":31,"p":[1111.0,2409.5],"yaw":58.4,"t":"13 El Medio | 14 La Pradera de la Casa"},{"n":32,"p":[1600.0,2188.5],"yaw":107.5,"t":"14 La Pradera de la Casa | 0 Casco + Mangas"},{"n":33,"p":[1706.5,2259.0],"yaw":5.7,"t":"11 El Puente | 0 Casco + Mangas"},{"n":34,"p":[1727.0,2231.5],"yaw":75.6,"t":"12 La Bomba | 0 Casco + Mangas"},{"n":35,"p":[1740.0,2289.5],"yaw":78.8,"t":"11 El Puente | 12 La Bomba"},{"n":36,"p":[1865.0,2105.5],"yaw":35.5,"t":"17 La Entrada | 0 Casco + Mangas"},{"n":37,"p":[1923.5,2151.0],"yaw":42.5,"t":"12 La Bomba | 17 La Entrada"},{"n":38,"p":[2337.0,2419.5],"yaw":64.4,"t":"9 El Embarcadero | entrance road"},{"n":39,"p":[3393.5,2146.0],"yaw":0.0,"t":"7 La Pradera Vieja | 19 El Caraguatá"},{"n":40,"p":[3461.0,2514.5],"yaw":73.2,"t":"7 La Pradera Vieja | 8 La Tapera"},{"n":41,"p":[4110.0,2499.5],"yaw":79.9,"t":"6 El Codo | 7 La Pradera Vieja"},{"n":42,"p":[4867.5,2110.0],"yaw":0.0,"t":"5 El Molino | 6 El Codo"},{"n":43,"p":[2594.5,3065.0],"yaw":174.1,"t":"10 El Tajamar | 12 La Bomba"},{"n":44,"p":[2829.5,2681.0],"yaw":35.5,"t":"8 La Tapera | 9 El Embarcadero"},{"n":45,"p":[1904.0,3112.5],"yaw":79.9,"t":"11 El Puente | 12 La Bomba"},{"n":46,"p":[1969.5,3549.0],"yaw":126.8,"t":"outside | 11 El Puente"},{"n":47,"p":[1983.0,3491.5],"yaw":83.4,"t":"10 El Tajamar | 11 El Puente"},{"n":48,"p":[2808.0,3267.5],"yaw":58.8,"t":"10 El Tajamar | entrance road"},{"n":49,"p":[2863.5,3316.0],"yaw":166.5,"t":"outside | entrance road"},{"n":50,"p":[3021.5,3278.0],"yaw":166.1,"t":"outside | 9 El Embarcadero"}],"roads":[{"ring":[[2306.2,2362.2],[2267.2,2391.2],[2264.2,2395.8],[2343.2,2513.2],[2383.2,2589.8],[2456.2,2708.2],[2479.2,2753.8],[2533.2,2837.2],[2594.2,2935.8],[2600.2,2943.2],[2606.2,2954.8],[2612.2,2962.2],[2663.2,3050.2],[2666.2,3057.8],[2705.2,3112.2],[2717.2,3137.8],[2752.2,3190.8],[2783.2,3229.2],[2808.2,3266.2],[2821.2,3290.2],[2833.2,3321.8],[2882.8,3310.8],[2870.8,3283.2],[2826.8,3227.8],[2804.8,3191.2],[2776.8,3159.8],[2712.8,3035.2],[2655.8,2946.8],[2641.8,2919.2],[2580.8,2838.8],[2538.8,2775.8],[2525.8,2752.2],[2506.8,2722.8],[2454.8,2623.2],[2450.8,2618.8],[2443.8,2605.2],[2439.8,2600.8],[2432.8,2587.2],[2428.8,2582.8],[2421.8,2569.2],[2417.8,2564.8],[2410.8,2551.2],[2406.8,2546.8],[2399.8,2533.2],[2364.8,2477.8],[2308.8,2363.2]],"es":"Camino de entrada"},{"ring":[[5128.8,443.2],[5122.2,446.2],[5119.2,454.2],[5109.2,499.2],[5108.2,514.8],[5104.2,530.2],[5099.2,575.8],[5096.2,589.2],[5095.2,606.8],[5089.2,640.2],[5088.2,657.8],[5084.2,674.2],[5079.2,719.8],[5071.2,754.2],[5071.2,769.8],[5067.2,790.2],[5065.2,817.8],[5059.2,850.2],[5058.2,867.8],[5055.2,880.2],[5054.2,897.8],[5051.2,910.2],[5050.2,927.8],[5047.2,940.2],[5046.2,957.8],[5044.2,963.2],[5043.2,977.8],[5041.2,982.2],[5040.2,996.8],[5037.2,1009.2],[5036.2,1026.8],[5034.2,1032.2],[5029.2,1076.8],[5023.2,1109.2],[5018.2,1156.8],[5016.2,1162.2],[5011.2,1206.8],[5009.2,1212.2],[5008.2,1226.8],[5002.2,1259.2],[4997.2,1306.8],[4995.2,1312.2],[4990.2,1355.8],[4988.2,1361.2],[4987.2,1375.8],[4981.2,1408.2],[4981.2,1417.8],[4974.2,1458.2],[4969.2,1505.8],[4967.2,1511.2],[4966.2,1525.8],[4960.2,1558.2],[4959.2,1574.8],[4957.2,1580.2],[4956.2,1594.8],[4950.2,1627.2],[4950.2,1636.8],[4946.2,1657.2],[4945.2,1674.8],[4942.2,1687.2],[4941.2,1704.8],[4938.2,1717.2],[4937.2,1734.8],[4935.2,1740.2],[4934.2,1754.8],[4929.2,1780.2],[4927.2,1804.8],[4919.2,1849.2],[4913.2,1903.8],[4911.2,1909.2],[4906.2,1953.8],[4900.2,1986.2],[4899.2,2003.8],[4896.2,2016.2],[4886.2,2116.2],[4881.2,2227.8],[4879.2,2239.2],[4878.2,2279.8],[4876.2,2290.2],[4875.2,2331.8],[4873.2,2342.2],[4871.2,2392.8],[4867.2,2424.2],[4866.2,2450.8],[4868.2,2455.8],[4874.2,2458.8],[4880.8,2455.8],[4883.8,2444.8],[4883.8,2424.2],[4887.8,2392.8],[4889.8,2342.2],[4891.8,2331.8],[4892.8,2290.2],[4894.8,2279.8],[4895.8,2239.2],[4897.8,2227.8],[4902.8,2116.2],[4912.8,2016.2],[4915.8,2003.8],[4916.8,1986.2],[4922.8,1953.8],[4927.8,1909.2],[4929.8,1903.8],[4935.8,1849.2],[4943.8,1804.8],[4945.8,1780.2],[4947.8,1774.8],[4948.8,1760.2],[4953.8,1734.8],[4954.8,1717.2],[4957.8,1704.8],[4958.8,1687.2],[4961.8,1674.8],[4962.8,1657.2],[4966.8,1636.8],[4966.8,1627.2],[4972.8,1594.8],[4973.8,1580.2],[4975.8,1574.8],[4976.8,1558.2],[4982.8,1525.8],[4983.8,1511.2],[4985.8,1505.8],[4990.8,1458.2],[4997.8,1417.8],[4997.8,1408.2],[5003.8,1375.8],[5004.8,1361.2],[5006.8,1355.8],[5011.8,1312.2],[5013.8,1306.8],[5018.8,1259.2],[5024.8,1226.8],[5025.8,1212.2],[5027.8,1206.8],[5028.8,1189.2],[5034.8,1156.8],[5035.8,1139.2],[5038.8,1126.8],[5039.8,1109.2],[5045.8,1076.8],[5050.8,1032.2],[5052.8,1026.8],[5053.8,1009.2],[5056.8,996.8],[5057.8,982.2],[5059.8,977.8],[5060.8,963.2],[5062.8,957.8],[5063.8,940.2],[5066.8,927.8],[5067.8,910.2],[5070.8,897.8],[5071.8,880.2],[5074.8,867.8],[5075.8,850.2],[5081.8,817.8],[5083.8,790.2],[5087.8,769.8],[5087.8,754.2],[5095.8,719.8],[5099.8,681.2],[5104.8,657.8],[5105.8,640.2],[5111.8,606.8],[5113.8,581.2],[5115.8,575.8],[5120.8,530.2],[5124.8,514.8],[5125.8,499.2],[5130.8,474.2],[5136.8,453.8],[5134.8,446.2]],"es":"Camino"}]};
+
+/* ---------- helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const UNIT = 2 ** DATA.zmax;                     // metres per map unit at zoom 0
+const ll = (p) => L.latLng(-p[1] / UNIT, p[0] / UNIT);
+const FIELDS = DATA.fields.filter(f => f.id >= 1);
+const NO = (id) => ((FIELDS.find(f => f.id === id) || {}).no || id);
+const sortKey = (s) => s.replace(/^(El|La|Los|Las)\s+/, '');
+const NAMES = [...new Set(FIELDS.map(f => f.es))].sort((a, b) => sortKey(a).localeCompare(sortKey(b), 'es'));
+const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-zñ\s]/g, ' ').replace(/\s+/g, ' ').trim();
+const noArt = (s) => s.replace(/^(el|la|los|las) /, '');
+function lev(a, b) {
+  const m = a.length, n = b.length, d = Array.from({length: m + 1}, (_, i) => [i]);
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[m][n];
+}
+const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+/* ---------- language (Spanish rioplatense default, English) ---------- */
+const I18N = {
+  es: {
+    count: '20 potreros<br>1011 ha', lang_aria: 'Idioma', map_aria: 'Mapa satelital de la estancia', zin: 'Acercar', zout: 'Alejar', zfit: 'Ver toda la estancia',
+    modes_aria: 'Modo de aprendizaje', m_explore: 'Explorar', m_explore_s: 'aprender', m_name: 'Nombrar', m_find: 'Ubicar', m_spell: 'Escribir', m_1: 'modo 1', m_2: 'modo 2', m_3: 'modo 3',
+    ex_prompt: 'Tocá un potrero en el mapa para ver su nombre.', showall: 'Mostrar todos los nombres en el mapa', showgates: 'Mostrar porteras (naranja)',
+    hint: 'Pellizcá para acercar o alejar y arrastrá para mover el mapa. Cada ronda recorre todos los potreros una vez, en orden al azar.',
+    start1: 'Empezar modo 1', field: (n) => 'Potrero ' + n, example: 'Ejemplo',
+    q_question: 'Pregunta', q_of: 'de', q_correct: 'Aciertos', ph: 'Nombre del potrero', check: 'Comprobar', restart: 'Reiniciar', names_aria: 'Nombres de los potreros',
+    p_name: '¿Qué potrero está parpadeando? Elegí su nombre.', p_spell: '¿Qué potrero está parpadeando? Escribí su nombre.', p_find: ['Tocá ', ' en el mapa.'],
+    last: 'Última respuesta: ', ok: '¡Correcto!', bad: 'Incorrecto',
+    named: (name, no) => name + ' (potrero ' + no + ')', is: (name, no) => 'Es ' + name + ' (potrero ' + no + ')', exact: (name) => 'Se escribe así: ' + name,
+    both: (nos, name) => 'Los potreros ' + nos.join(' y ') + ' son ' + name + '.', tapped: (a, b) => 'Tocaste ' + a + '. ' + b + ' está marcado en rojo.',
+    mode: { name: 'Modo 1 · Nombrar', find: 'Modo 2 · Ubicar', spell: 'Modo 3 · Escribir' },
+    r100: 'Todos bien. Ya conocés El Campamento.', r80: (p) => p + ' % de aciertos. ¡Casi!', r50: (p) => p + ' % de aciertos. Repasá los potreros en rojo y probá de nuevo.',
+    r0: (p) => p + ' % de aciertos. Pasá unos minutos en Explorar y después probá de nuevo.',
+    best_first: 'Primera ronda en este modo.', best_new: (b, n) => '¡Nuevo récord! (antes ' + b + ' / ' + n + ')', best_so: (b, n) => 'Mejor resultado: ' + b + ' / ' + n + '.',
+    again: 'Jugar de nuevo', toexplore: 'Explorar el mapa', loading: 'Cargando el mapa…',
+    tileerr: 'No se pudieron cargar algunas partes del mapa. Revisá la conexión y recargá la página.', other: 'campo vecino',
+    gps: 'Mi ubicación', g_search: 'Buscando señal GPS…', g_denied: 'Sin permiso de ubicación. Activalo en Ajustes → Privacidad y seguridad → Localización.',
+    g_unavail: 'Sin señal GPS por ahora.', g_in: 'Estás en: ', g_out: 'Fuera de la estancia', g_offmap: 'Fuera del mapa', g_pos: 'Tu posición', g_weak: 'señal débil',
+    road_entrance: 'el camino de entrada', road_east: 'el camino',
+    off_ok: '✓ Guardado en el teléfono: funciona sin internet.', off_saving: 'Guardando el mapa en el teléfono…',
+    off_install: 'Para usarlo sin internet: tocá Compartir → Agregar a inicio y abrí la app una vez con internet.'
+  },
+  en: {
+    count: '20 fields<br>1011 ha', lang_aria: 'Language', map_aria: 'Satellite map of the ranch', zin: 'Zoom in', zout: 'Zoom out', zfit: 'Show whole ranch',
+    modes_aria: 'Learning mode', m_explore: 'Explore', m_explore_s: 'learn', m_name: 'Name it', m_find: 'Find it', m_spell: 'Spell it', m_1: 'mode 1', m_2: 'mode 2', m_3: 'mode 3',
+    ex_prompt: 'Tap a field on the map to see its name.', showall: 'Show all names on the map', showgates: 'Show gates (orange)',
+    hint: 'Pinch to zoom, drag to move. Each quiz goes through every field once in random order.',
+    start1: 'Start mode 1', field: (n) => 'Field ' + n, example: 'Example',
+    q_question: 'Question', q_of: 'of', q_correct: 'Correct', ph: 'Spanish name', check: 'Check', restart: 'Restart', names_aria: 'Field names',
+    p_name: 'Which field is blinking? Pick its name.', p_spell: 'Which field is blinking? Type its Spanish name.', p_find: ['Tap ', ' on the map.'],
+    last: 'Last answer: ', ok: 'Correct', bad: 'Not quite',
+    named: (name, no) => name + ' (field ' + no + ')', is: (name, no) => 'This is ' + name + ' (field ' + no + ')', exact: (name) => 'Exact spelling: ' + name,
+    both: (nos, name) => 'Fields ' + nos.join(' and ') + ' are both ' + name + '.', tapped: (a, b) => 'You tapped ' + a + '. ' + b + ' is marked in red.',
+    mode: { name: 'Mode 1 · Name it', find: 'Mode 2 · Find it', spell: 'Mode 3 · Spell it' },
+    r100: 'All fields right. You know El Campamento.', r80: (p) => p + ' % correct. Almost there.', r50: (p) => p + ' % correct. Review the red fields and run it again.',
+    r0: (p) => p + ' % correct. Spend a few minutes in Explore, then try again.',
+    best_first: 'First run in this mode.', best_new: (b, n) => 'New best (previous ' + b + ' / ' + n + ').', best_so: (b, n) => 'Best so far: ' + b + ' / ' + n + '.',
+    again: 'Run again', toexplore: 'Explore map', loading: 'Loading map…',
+    tileerr: 'Some map tiles could not load. Check the connection and reload.', other: 'other ranch',
+    gps: 'My location', g_search: 'Looking for GPS signal…', g_denied: 'No location permission. Turn it on in Settings → Privacy & Security → Location Services.',
+    g_unavail: 'No GPS signal right now.', g_in: "You're in: ", g_out: 'Outside the ranch', g_offmap: 'Outside the map', g_pos: 'Your position', g_weak: 'weak signal',
+    road_entrance: 'the entrance road', road_east: 'the road',
+    off_ok: '✓ Saved on this phone: works without internet.', off_saving: 'Saving the map on this phone…',
+    off_install: 'To use it without internet: tap Share → Add to Home Screen, then open the app once while online.'
+  }
+};
+let LANG = (store.get('campamento-lang') === 'en') ? 'en' : 'es';
+const T = (k) => I18N[LANG][k];
+
+/* ---------- map ---------- */
+const imgBounds = L.latLngBounds(ll([0, 0]), ll([DATA.w, DATA.h]));
+const ranchBounds = L.latLngBounds(FIELDS.flatMap(f => f.ring.map(ll)));
+const map = L.map('map', {
+  crs: L.CRS.Simple, zoomControl: false, attributionControl: false,
+  minZoom: -1, maxZoom: 6, zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 90,
+  maxBounds: imgBounds.pad(0.05), maxBoundsViscosity: 0.9, bounceAtZoomLimits: false
+});
+const tiles = L.tileLayer('tiles/{z}/{x}/{y}.jpg', {
+  tileSize: DATA.tile, minNativeZoom: 0, maxNativeZoom: DATA.zmax, minZoom: -1, maxZoom: 6,
+  bounds: imgBounds, noWrap: true, keepBuffer: 3
+}).addTo(map);
+let loadState = 'loading';
+tiles.once('load', () => { loadState = null; $('loadnote').hidden = true; });
+tiles.on('tileerror', () => { loadState = 'error'; $('loadnote').textContent = T('tileerr'); $('loadnote').hidden = false; });
+function fitRanch() { gpsFollow = false; refreshGpsBtn(); map.fitBounds(ranchBounds, { padding: [12, 12] }); }
+fitRanch();
+$('zin').onclick = () => map.zoomIn(0.75);
+$('zout').onclick = () => map.zoomOut(0.75);
+$('zfit').onclick = fitRanch;
+function sizeLabels() {
+  const z = map.getZoom();
+  map.getContainer().style.setProperty('--lblsize', (z < 0.75 ? 10 : z < 1.75 ? 11.5 : z < 3 ? 13 : 15) + 'px');
+}
+map.on('zoomend', sizeLabels); sizeLabels();
+new ResizeObserver(() => map.invalidateSize()).observe($('map'));
+
+const BASE = { color: '#ffffff', weight: 1.6, opacity: 0.85, fillColor: '#ffffff', fillOpacity: 0.03, className: 'fld' };
+const OK = { color: '#5fe08a', weight: 2.5, opacity: 1, fillColor: '#2fbf62', fillOpacity: 0.33 };
+const BAD = { color: '#ff7a69', weight: 2.5, opacity: 1, fillColor: '#e5483a', fillOpacity: 0.33 };
+const layer = {}, label = {};
+for (const f of DATA.fields) {
+  const isCasco = f.id === 0;
+  const poly = L.polygon(f.ring.map(ll), isCasco
+    ? { color: '#ffffff', weight: 1.2, opacity: 0.7, dashArray: '4 4', fillOpacity: 0, interactive: false }
+    : Object.assign({}, BASE)).addTo(map);
+  layer[f.id] = poly;
+  label[f.id] = L.tooltip({ permanent: true, direction: 'center', className: 'lbl' + (isCasco ? ' dim' : ''), interactive: false })
+    .setLatLng(ll(f.label)).setContent(f.es);
+  if (isCasco) label[f.id].addTo(map);
+  if (!isCasco) poly.on('click', () => onFieldTap(f));
+}
+L.polygon(DATA.excluded.ring.map(ll), { color: '#c9cfc6', weight: 1.4, dashArray: '6 5', fillColor: '#20262a', fillOpacity: 0.45, interactive: false }).addTo(map);
+const otherTip = L.tooltip({ permanent: true, direction: 'center', className: 'lbl dim', interactive: false })
+  .setLatLng(ll(DATA.excluded.label)).setContent(T('other')).addTo(map);
+/* roads as closed areas (entrance road with trees, road east of La Herradura) */
+for (const r of DATA.roads || []) L.polygon(r.ring.map(ll), { color: '#ffffff', weight: 1.6, opacity: 0.85, fill: false, interactive: false }).addTo(map);
+
+/* gates: dot at every zoom, a bar along the fence when zoomed in */
+const gateLayer = L.layerGroup(), gateBars = L.layerGroup();
+for (const g of DATA.gates || []) {
+  const a = g.yaw * Math.PI / 180, h = 2.5, ux = Math.cos(a), uy = Math.sin(a), c = 1.2;   // gate 5 m wide, end posts 2.4 m
+  const A = [g.p[0] - ux * h, g.p[1] - uy * h], B = [g.p[0] + ux * h, g.p[1] + uy * h];
+  L.polyline([ll(A), ll(B)], { color: '#ffb21e', weight: 2.5, opacity: 1, lineCap: 'butt', interactive: false }).addTo(gateBars);   // 1.5x the white fence line
+  for (const E of [A, B]) L.polyline([ll([E[0] + uy * c, E[1] - ux * c]), ll([E[0] - uy * c, E[1] + ux * c])], { color: '#000000', weight: 2, opacity: 1, lineCap: 'butt', interactive: false }).addTo(gateBars);
+  L.circleMarker(ll(g.p), { radius: 4, color: '#1b1408', weight: 1.5, fillColor: '#ffb21e', fillOpacity: 1, interactive: false }).addTo(gateLayer);
+}
+function syncGates() {
+  const on = $('showgates').checked, big = map.getZoom() >= 4.5;
+  if (on && !big) gateLayer.addTo(map); else map.removeLayer(gateLayer);
+  if (on && big) gateBars.addTo(map); else map.removeLayer(gateBars);
+}
+map.on('zoomend', syncGates);
+
+const el = (id) => layer[id].getElement();
+function resetMap() {
+  for (const f of FIELDS) {
+    layer[f.id].setStyle(BASE);
+    el(f.id).classList.remove('blink', 'sel', 'flash');
+    map.removeLayer(label[f.id]);
+  }
+}
+function showLabel(id, cls) {
+  const t = label[id]; if (!map.hasLayer(t)) t.addTo(map);
+  const e = t.getElement(); e.classList.remove('ok', 'bad'); if (cls) e.classList.add(cls);
+}
+function markField(id, ok) { layer[id].setStyle(ok ? OK : BAD); el(id).classList.remove('blink'); showLabel(id, ok ? 'ok' : 'bad'); }
+function ensureVisible(ids) {
+  gpsFollow = false; refreshGpsBtn();
+  const b = L.latLngBounds(ids.flatMap(id => layer[id].getLatLngs()[0]));
+  if (!map.getBounds().contains(b)) map.flyToBounds(b, { padding: [50, 50], maxZoom: Math.max(map.getZoom(), 1), duration: 0.6 });
+}
+
+/* ---------- app state ---------- */
+let mode = 'explore';
+let run = null;   // {mode, items, i, ok, log:[], answered}
+
+function setMode(m) {
+  clearTimeout(advanceTimer);
+  mode = m;
+  renderWhere();
+  document.querySelectorAll('.modes button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  resetMap();
+  $('explore').hidden = m !== 'explore';
+  $('result').hidden = true;
+  $('quiz').hidden = m === 'explore';
+  if (m === 'explore') { applyShowAll(); run = null; } else startRun(m);
+}
+document.querySelectorAll('.modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => setMode(b.dataset.start));
+
+/* explore */
+let selected = null;
+function applyShowAll() {
+  for (const f of FIELDS) { map.removeLayer(label[f.id]); if ($('showall').checked) showLabel(f.id, ''); }
+}
+$('showall').onchange = applyShowAll;
+$('showgates').onchange = syncGates;
+syncGates();
+let infoExample = false;
+function renderInfoNum() {
+  const f = FIELDS.find(x => x.id === selected); if (!f) return;
+  $('i-num').textContent = (infoExample ? T('example') + ' · ' : '') + T('field')(f.no || f.id);
+}
+function showInfo(f) {
+  if (selected != null) el(selected).classList.remove('sel');
+  selected = f.id; el(f.id).classList.add('sel'); infoExample = false; renderInfoNum();
+  $('i-es').textContent = f.es; $('i-de').textContent = f.de; $('i-ha').textContent = f.ha.toFixed(1) + ' ha';
+}
+
+/* quiz */
+function startRun(m) {
+  const items = m === 'find'
+    ? shuffle(NAMES.map(n => ({ name: n, ids: FIELDS.filter(f => f.es === n).map(f => f.id) })))
+    : shuffle(FIELDS).map(f => ({ name: f.es, ids: [f.id], f }));
+  run = { mode: m, items, i: 0, ok: 0, log: [] };
+  $('fb').hidden = true;
+  $('q-n').textContent = items.length;
+  $('typeform').hidden = m !== 'spell';
+  $('names').hidden = m === 'spell';
+  $('names').classList.toggle('readonly', m === 'find');
+  renderNames();
+  ask();
+}
+function renderNames() {
+  const box = $('names'); box.innerHTML = '';
+  for (const n of NAMES) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = n; b.dataset.name = n;
+    if (run.mode === 'name') b.onclick = () => answerName(n, b);
+    else b.tabIndex = -1;
+    box.appendChild(b);
+  }
+}
+function nameBtn(n) { return [...$('names').children].find(b => b.dataset.name === n); }
+function ask() {
+  const it = run.items[run.i];
+  run.answered = false;
+  $('q-i').textContent = run.i + 1; $('q-ok').textContent = run.ok;
+  $('q-bar').style.width = (100 * run.i / run.items.length) + '%';
+  if (run.mode !== 'spell') resetMap();   // modes 1 and 2: clear the previous green/red field and its label so earlier answers give no hints
+  for (const f of FIELDS) el(f.id).classList.remove('flash');
+  $('typein').classList.remove('badblink');
+  [...$('names').children].forEach(b => { b.classList.remove('blink', 'badblink', 'ok', 'bad'); b.disabled = run.mode !== 'name'; });
+  if (run.mode === 'find') {
+    renderPrompt();
+    const b = nameBtn(it.name); b.classList.add('blink'); b.scrollIntoView({ block: 'nearest' });
+  } else {
+    el(it.ids[0]).classList.add('blink'); ensureVisible(it.ids);
+    renderPrompt();
+    if (run.mode === 'spell') { $('typein').value = ''; $('typesubmit').disabled = false; if (document.activeElement !== $('typein')) $('typein').focus({ preventScroll: true }); }
+  }
+}
+function renderPrompt() {
+  if (!run || run.i >= run.items.length) return;
+  const it = run.items[run.i], P = $('q-prompt');
+  if (run.mode === 'find') { const [a, b] = T('p_find'); P.textContent = ''; P.append(a); const em = document.createElement('em'); em.textContent = it.name; P.append(em, b); }
+  else P.textContent = T(run.mode === 'name' ? 'p_name' : 'p_spell');
+}
+let lastFb = null;   // rebuilds the last result box in the current language
+function showFb(build) { lastFb = build; build(); }
+function feedback(ok, title, lines) {
+  const fb = $('fb'); fb.className = 'feedback ' + (ok ? 'ok' : 'bad'); fb.innerHTML = '';
+  const s = document.createElement('strong'); s.textContent = T('last') + title; fb.appendChild(s);
+  for (const [txt, cls] of lines) { const d = document.createElement('div'); d.textContent = txt; if (cls) d.className = cls; fb.appendChild(d); }
+  fb.hidden = false;
+}
+function finishAnswer(ok, given) {
+  const it = run.items[run.i];
+  run.answered = true; if (ok) run.ok++;
+  run.log.push({ name: it.name, ids: it.ids, ok, given });
+  $('q-ok').textContent = run.ok;
+  $('q-bar').style.width = (100 * (run.i + 1) / run.items.length) + '%';
+  clearTimeout(advanceTimer);
+  advanceTimer = setTimeout(nextQ, ok ? 900 : 1700);
+}
+let advanceTimer = null;
+const deOf = (name) => FIELDS.find(f => f.es === name).de;
+
+function answerName(n, btn) {
+  if (!run || run.answered || run.mode !== 'name') return;
+  const it = run.items[run.i], ok = n === it.name;
+  btn.classList.add(ok ? 'ok' : 'badblink');
+  if (!ok) nameBtn(it.name).classList.add('ok');
+  markField(it.ids[0], ok);
+  showFb(() => feedback(ok, T(ok ? 'ok' : 'bad'), [[T(ok ? 'named' : 'is')(it.name, NO(it.ids[0])), ''], [deOf(it.name), 'de']]));
+  finishAnswer(ok, n);
+}
+function onFieldTap(f) {
+  if (mode === 'explore') return showInfo(f);
+  if (!run || run.answered || run.mode !== 'find') return;
+  const it = run.items[run.i], ok = it.ids.includes(f.id);
+  nameBtn(it.name).classList.remove('blink');
+  nameBtn(it.name).classList.add(ok ? 'ok' : 'bad');
+  for (const id of it.ids) markField(id, ok);
+  if (!ok) el(f.id).classList.add('flash');
+  showFb(() => feedback(ok, T(ok ? 'ok' : 'bad'), ok ? [[it.ids.length > 1 ? T('both')(it.ids.map(NO), it.name) : T('field')(NO(it.ids[0])), ''], [deOf(it.name), 'de']]
+                   : [[T('tapped')(f.es, it.name), ''], [deOf(it.name), 'de']]));
+  finishAnswer(ok, f.es);
+}
+$('typeform').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!run || run.mode !== 'spell') return;
+  if (run.answered) return;
+  const raw = $('typein').value.trim(); if (!raw) return;
+  const it = run.items[run.i], want = norm(it.name), got = norm(raw);
+  const exact = raw === it.name;
+  const close = got === want || noArt(got) === noArt(want) || (noArt(want).length >= 6 && lev(noArt(got), noArt(want)) <= 1);
+  const ok = exact || close;
+  markField(it.ids[0], ok);
+  $('typesubmit').disabled = true;
+  if (!ok) $('typein').classList.add('badblink');
+  showFb(() => feedback(ok, T(ok ? 'ok' : 'bad'), exact ? [[deOf(it.name), 'de']]
+    : ok ? [[T('exact')(it.name), ''], [deOf(it.name), 'de']]
+    : [[T('is')(it.name, NO(it.ids[0])), ''], [deOf(it.name), 'de']]));
+  finishAnswer(ok, raw);
+});
+function nextQ() {
+  if (!run || !run.answered) return;
+  run.i++;
+  if (run.i >= run.items.length) return showResult();
+  ask();
+}
+$('restart').onclick = () => setMode(run ? run.mode : 'name');
+$('again').onclick = () => setMode(run.mode);
+$('toexplore').onclick = () => setMode('explore');
+
+function renderResultText() {
+  if (!run) return;
+  const n = run.items.length, pct = Math.round(100 * run.ok / n), best = run.bestPrev;
+  $('r-mode').textContent = T('mode')[run.mode];
+  $('r-text').textContent = pct === 100 ? T('r100') : T(pct >= 80 ? 'r80' : pct >= 50 ? 'r50' : 'r0')(pct);
+  $('r-best').textContent = best == null ? T('best_first') : run.ok > best ? T('best_new')(best, n) : T('best_so')(best, n);
+}
+function showResult() {
+  $('quiz').hidden = true; $('result').hidden = false;
+  if (run.mode !== 'spell') resetMap();   // modes 1 and 2: clear the last answered field too
+  const n = run.items.length, pct = Math.round(100 * run.ok / n);
+  $('r-score').textContent = run.ok; $('r-of').textContent = '/ ' + n;
+  const key = 'campamento-best-' + run.mode, best = store.get(key);
+  if (!best || run.ok > best) store.set(key, run.ok);
+  run.bestPrev = best; renderResultText();
+  const ul = $('r-misses'); ul.innerHTML = '';
+  for (const r of run.log.filter(r => !r.ok)) {
+    const li = document.createElement('li');
+    const a = document.createElement('span'); a.textContent = r.name + ' (' + r.ids.map(NO).join(', ') + ')';
+    const b = document.createElement('span'); b.textContent = r.given; li.append(a, b); ul.appendChild(li);
+  }
+  if (!ul.children.length) ul.hidden = true; else ul.hidden = false;
+  fitRanch();
+}
+
+/* start in Explore with names shown and an example field selected */
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(e => { e.textContent = T(e.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(e => { e.innerHTML = T(e.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(e => e.setAttribute('aria-label', T(e.dataset.i18nAria)));
+  document.querySelectorAll('[data-i18n-ph]').forEach(e => e.setAttribute('placeholder', T(e.dataset.i18nPh)));
+  document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
+  if (loadState) $('loadnote').textContent = T(loadState === 'error' ? 'tileerr' : 'loading');
+  otherTip.setContent(T('other'));
+  renderWhere(); renderOffline();
+  renderInfoNum();
+  if (run && !$('quiz').hidden) { renderPrompt(); if (lastFb && !$('fb').hidden) lastFb(); }
+  if (run && !$('result').hidden) renderResultText();
+}
+document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { LANG = b.dataset.lang; store.set('campamento-lang', LANG); applyLang(); });
+
+/* start in Explore with names shown and an example field selected */
+/* ---------- GPS position (WGS84 → UTM 21S → map metres) ---------- */
+var gpsWatch = null, gpsFollow = false, gpsFix = null, gpsMsg = null;
+map.createPane('gps'); map.getPane('gps').style.zIndex = 660; map.getPane('gps').style.pointerEvents = 'none';
+const gpsAcc = L.circle([0, 0], { pane: 'gps', radius: 1, color: '#4aa3ff', weight: 1, opacity: 0.7, fillColor: '#4aa3ff', fillOpacity: 0.15, interactive: false });
+const gpsDot = L.circleMarker([0, 0], { pane: 'gps', radius: 8, color: '#ffffff', weight: 3, fillColor: '#1f7ae0', fillOpacity: 1, interactive: false });
+function ll2utm(lat, lon) {          // Transverse Mercator, WGS84 ellipsoid, zone 21 south (central meridian 57° W)
+  const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996, e2 = f * (2 - f), ep2 = e2 / (1 - e2), r = Math.PI / 180;
+  const p = lat * r, A = Math.cos(p) * (lon + 57) * r, s = Math.sin(p), t = Math.tan(p);
+  const N = a / Math.sqrt(1 - e2 * s * s), T2 = t * t, C = ep2 * Math.cos(p) ** 2;
+  const M = a * ((1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256) * p - (3 * e2 / 8 + 3 * e2 ** 2 / 32 + 45 * e2 ** 3 / 1024) * Math.sin(2 * p)
+          + (15 * e2 ** 2 / 256 + 45 * e2 ** 3 / 1024) * Math.sin(4 * p) - (35 * e2 ** 3 / 3072) * Math.sin(6 * p));
+  const E = k0 * N * (A + (1 - T2 + C) * A ** 3 / 6 + (5 - 18 * T2 + T2 * T2 + 72 * C - 58 * ep2) * A ** 5 / 120) + 500000;
+  const Nn = k0 * (M + N * t * (A * A / 2 + (5 - T2 + 9 * C + 4 * C * C) * A ** 4 / 24 + (61 - 58 * T2 + T2 * T2 + 600 * C - 330 * ep2) * A ** 6 / 720)) + 10000000;
+  return [E, Nn];
+}
+function inRing(q, ring) {
+  let c = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > q[1]) !== (yj > q[1]) && q[0] < (xj - xi) * (q[1] - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+function whereAt(q) {
+  if (q[0] < 0 || q[1] < 0 || q[0] > DATA.w || q[1] > DATA.h) return T('g_offmap');
+  for (const f of DATA.fields) if (inRing(q, f.ring)) return T('g_in') + f.es;
+  const roads = DATA.roads || [];
+  for (let i = 0; i < roads.length; i++) if (inRing(q, roads[i].ring)) return T('g_in') + T(i === 0 ? 'road_entrance' : 'road_east');
+  if (inRing(q, DATA.excluded.ring)) return T('g_in') + T('other');
+  return T('g_out');
+}
+function refreshGpsBtn() {
+  const b = $('zgps'); if (!b) return;
+  b.classList.toggle('on', !!gpsWatch); b.classList.toggle('follow', !!gpsWatch && gpsFollow);
+  b.classList.toggle('searching', !!gpsWatch && !gpsFix);
+}
+function renderWhere() {
+  const w = $('where'); if (!w) return;
+  if (!gpsWatch && !gpsMsg) { w.hidden = true; return; }
+  w.hidden = false;
+  if (gpsMsg) { w.textContent = T(gpsMsg); return; }
+  if (!gpsFix) { w.textContent = T('g_search'); return; }
+  const acc = '±' + Math.round(gpsFix.acc) + ' m' + (gpsFix.acc > 50 ? ' · ' + T('g_weak') : '');
+  w.textContent = (mode === 'explore' ? whereAt(gpsFix.p) : T('g_pos')) + ' · ' + acc;   // no field name during a quiz
+}
+function onPos(pos) {
+  const [E, N] = ll2utm(pos.coords.latitude, pos.coords.longitude);
+  const q = [E - DATA.origin_utm[0], DATA.origin_utm[1] - N], at = ll(q), first = !gpsFix;
+  gpsFix = { p: q, acc: pos.coords.accuracy }; gpsMsg = null;
+  gpsAcc.setLatLng(at).setRadius(pos.coords.accuracy / UNIT); gpsDot.setLatLng(at);
+  if (!map.hasLayer(gpsDot)) { gpsAcc.addTo(map); gpsDot.addTo(map); }
+  if (gpsFollow) { if (first) map.setView(at, Math.max(map.getZoom(), 3)); else map.panTo(at); }
+  refreshGpsBtn(); renderWhere();
+}
+function onPosErr(err) {
+  if (err.code === 1) { stopGps(); gpsMsg = 'g_denied'; }
+  else gpsMsg = gpsFix ? null : 'g_unavail';
+  refreshGpsBtn(); renderWhere();
+}
+function startGps() {
+  gpsMsg = null;
+  if (!('geolocation' in navigator)) { gpsMsg = 'g_unavail'; renderWhere(); return; }
+  gpsFollow = true;
+  gpsWatch = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+  store.set('campamento-gps', 'on'); refreshGpsBtn(); renderWhere();
+}
+function stopGps() {
+  if (gpsWatch != null) navigator.geolocation.clearWatch(gpsWatch);
+  gpsWatch = null; gpsFix = null; gpsFollow = false; gpsMsg = null;
+  map.removeLayer(gpsDot); map.removeLayer(gpsAcc);
+  store.set('campamento-gps', 'off'); refreshGpsBtn(); renderWhere();
+}
+$('zgps').onclick = () => {
+  if (gpsWatch == null) startGps();                                   // off → on, following
+  else if (!gpsFollow) { gpsFollow = true; if (gpsFix) map.setView(ll(gpsFix.p), Math.max(map.getZoom(), 3)); refreshGpsBtn(); }
+  else stopGps();                                                     // following → off
+};
+map.on('dragstart', () => { if (gpsFollow) { gpsFollow = false; refreshGpsBtn(); } });
+
+/* ---------- offline storage (service worker) ---------- */
+const OFFLINE = { cache: 'potreros-v1', files: 176 };
+let offState = null;
+function renderOffline() {
+  const e = $('offline'); if (!e) return;
+  if (!offState) { e.hidden = true; return; }
+  e.hidden = false; e.className = 'offline' + (offState === 'ok' ? ' ok' : '');
+  e.textContent = T(offState === 'ok' ? 'off_ok' : offState === 'saving' ? 'off_saving' : 'off_install');
+}
+async function checkOffline() {
+  let n = 0;
+  try { if ('caches' in window) n = (await (await caches.open(OFFLINE.cache)).keys()).length; } catch (e) {}
+  // iPhone: a Safari tab and the home-screen app keep separate storage, so a tab always shows the install hint
+  offState = navigator.standalone === false ? 'install' : n >= OFFLINE.files ? 'ok' : 'saving';
+  renderOffline();
+  if (offState === 'saving') setTimeout(checkOffline, 2000);
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+checkOffline();
+if (store.get('campamento-gps') === 'on') startGps();
+
+setMode('explore');
+showInfo(FIELDS.find(f => f.id === 18));
+infoExample = true;
+applyLang();
+</script>
+
+</body>
+</html>
