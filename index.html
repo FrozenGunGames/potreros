@@ -138,6 +138,33 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .where{position:absolute;z-index:1000;left:calc(10px + env(safe-area-inset-left,0px));bottom:10px;max-width:calc(100% - 20px);background:rgba(16,22,18,.84);color:#fff;font:600 14px/1.25 var(--f-ui);padding:8px 12px;border-radius:10px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);pointer-events:none}
 .offline{font-size:13px;color:var(--muted);margin:0}
 .offline.ok{color:var(--ok);font-weight:600}
+.modes{grid-template-columns:repeat(5,1fr)}
+.modes button{font-size:12.5px;padding:8px 2px}
+.modes button small{font-size:10px;letter-spacing:.04em}
+.hx{background:none;border:0}
+.hx svg{display:block;width:44px;height:44px;overflow:visible}
+.hx .x{stroke:#fff}
+.hx.got .x{stroke:#ea3a2c}
+.hx.near svg{animation:hxpulse .7s ease-in-out infinite alternate}
+@keyframes hxpulse{from{transform:scale(1)}to{transform:scale(1.4)}}
+.hnear{font-size:14px;margin:0;font-weight:600}
+.hnear.warn{color:var(--warn)}
+.album{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.album button{aspect-ratio:960/680;border:1px dashed var(--muted);border-radius:5px;background:var(--bg);color:var(--muted);font:600 13px var(--f-ui);padding:0;overflow:hidden;cursor:pointer}
+.album button.got{border:1px solid var(--line)}
+.album button:disabled{cursor:default}
+.album button img{display:block;width:100%;height:100%;object-fit:cover}
+.confirm{display:flex;flex-direction:column;gap:10px;border:1px solid var(--bad);border-radius:var(--r);padding:12px;background:var(--bad-soft)}
+.confirm p{margin:0;font-size:14px}
+.modal{position:fixed;inset:0;z-index:3000;display:flex;padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px));background:rgba(8,12,10,.74);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet{margin:auto;width:min(100%,560px);box-sizing:border-box;background:var(--surface);color:var(--ink);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.sheet h2{font-family:var(--f-display);font-weight:700;font-size:25px;line-height:1.15;margin:0;text-wrap:balance}
+.sheet p{margin:0;font-size:15px}
+.sheet .note{font-size:13px;color:var(--muted)}
+.sheet .postal{display:block;width:100%;height:auto;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.35);-webkit-touch-callout:default}
+.sheet .mark{width:52px;height:52px;color:var(--accent)}
+.sheet .actions .btn{flex:1 1 0;min-height:50px;font-size:17px}
+@media (prefers-reduced-motion:reduce){.hx.near svg{animation:none;transform:scale(1.3)}}
 .loadnote{position:absolute;inset:0;display:grid;place-items:center;color:#dfe6dc;font-size:14px;z-index:5;pointer-events:none}
 
 /* map overlay styling */
@@ -226,6 +253,7 @@ svg.leaflet-zoom-animated{will-change:transform}
       <button type="button" data-mode="name" aria-pressed="false"><span data-i18n="m_name">Nombrar</span><small data-i18n="m_1">modo 1</small></button>
       <button type="button" data-mode="find" aria-pressed="false"><span data-i18n="m_find">Ubicar</span><small data-i18n="m_2">modo 2</small></button>
       <button type="button" data-mode="spell" aria-pressed="false"><span data-i18n="m_spell">Escribir</span><small data-i18n="m_3">modo 3</small></button>
+      <button type="button" data-mode="hunt" aria-pressed="false"><span data-i18n="m_hunt">Búsqueda</span><small data-i18n="m_4">modo 4</small></button>
     </nav>
 
     <!-- explore -->
@@ -260,6 +288,21 @@ svg.leaflet-zoom-animated{will-change:transform}
       <div class="names" id="names" role="group" data-i18n-aria="names_aria" aria-label="Nombres de los potreros"></div>
     </section>
 
+    <!-- hunt -->
+    <section id="hunt" class="status" hidden>
+      <div class="statusrow"><span data-i18n="h_title">La Búsqueda</span><span><span data-i18n="h_cards">Postales</span> <b id="h-n">0</b> <span data-i18n="q_of">de</span> <b>12</b></span></div>
+      <div class="bar"><i id="h-bar"></i></div>
+      <p class="prompt" id="h-prompt"></p>
+      <p class="hnear" id="h-near" role="status" hidden></p>
+      <div class="album" id="h-album" role="group" data-i18n-aria="h_album" aria-label="Postales recogidas"></div>
+      <p class="hint" data-i18n="h_hint"></p>
+      <div class="actions"><button type="button" class="btn ghost" id="h-restart" data-i18n="h_restart">Reiniciar la búsqueda</button></div>
+      <div class="confirm" id="h-confirm" hidden>
+        <p id="h-confirm-t"></p>
+        <div class="actions"><button type="button" class="btn primary" id="h-reset-yes" data-i18n="h_reset_yes">Sí, reiniciar</button><button type="button" class="btn ghost" id="h-reset-no" data-i18n="no">No</button></div>
+      </div>
+    </section>
+
     <!-- result -->
     <section id="result" class="status" hidden>
       <div class="eyebrow" id="r-mode">Modo 1 · Nombrar</div>
@@ -274,6 +317,7 @@ svg.leaflet-zoom-animated{will-change:transform}
     </section>
   </aside>
 </div>
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-h"></div></div>
 
 <script src="leaflet.js"></script>
 <script>
@@ -320,6 +364,24 @@ const I18N = {
     best_first: 'Primera ronda en este modo.', best_new: (b, n) => '¡Nuevo récord! (antes ' + b + ' / ' + n + ')', best_so: (b, n) => 'Mejor resultado: ' + b + ' / ' + n + '.',
     again: 'Jugar de nuevo', toexplore: 'Explorar el mapa', loading: 'Cargando el mapa…',
     tileerr: 'No se pudieron cargar algunas partes del mapa. Revisá la conexión y recargá la página.', other: 'campo vecino',
+    m_hunt: 'Búsqueda', m_4: 'modo 4', h_title: 'La Búsqueda', h_cards: 'Postales', h_album: 'Postales recogidas', yes: 'Sí', no: 'No',
+    h_prompt: 'Caminá hasta una cruz blanca del mapa. A menos de 50 m aparece el tesoro.',
+    h_done: '¡Completaste la colección! Tenés las 12 postales.',
+    h_nogps: 'Prendé el GPS (botón de la flecha) para buscar tesoros.', h_gps_wait: 'Buscando señal GPS…',
+    h_weak: (n) => `Señal GPS débil (±${n} m). Buscá cielo abierto.`,
+    h_near: (d) => `La cruz más cercana está a ${d}.`, h_here: 'Estás junto a un tesoro. Tocá la cruz para recogerlo.',
+    h_far: (d) => `Todavía estás a ${d} de esa cruz.`,
+    h_hint: 'Dejá la app abierta y la pantalla prendida mientras caminás. Tocá una postal recogida para verla de nuevo.',
+    h_restart: 'Reiniciar la búsqueda', h_reset_yes: 'Sí, reiniciar',
+    h_reset_q: (n) => (n === 1 ? '¿Borrar la postal recogida' : `¿Borrar las ${n} postales recogidas`) + ' y empezar de nuevo?',
+    h_slot: (n) => `Postal ${n}: todavía sin encontrar`, h_slot_got: (n, c) => `Ver la postal ${n}: ${c.es}`,
+    f_title: '¡Encontraste un tesoro!', f_text: (d) => `Estás a ${d} de la cruz. ¿Querés recogerlo?`,
+    c_new: '¡Postal recogida!', c_all: '¡Era la última! Completaste la colección.',
+    c_title: (n, c) => `Postal ${n} de 12 · ${c.es}`, c_alt: (c) => `Postal antigua con ${c.alt}`,
+    c_save_q: '¿Querés guardar la postal en Fotos?', c_save: 'Guardar en Fotos', c_later: 'Ahora no', c_close: 'Cerrar',
+    c_share: 'Se abre el menú Compartir: elegí «Guardar imagen».',
+    c_hold: 'Mantené apretada la postal y elegí «Guardar en Fotos».',
+    c_saved: 'Listo. Si elegiste «Guardar imagen», la postal ya está en Fotos.',
     gps: 'Mi ubicación', g_search: 'Buscando señal GPS…', g_denied: 'Sin permiso de ubicación. Activalo en Ajustes → Privacidad y seguridad → Localización.',
     g_unavail: 'Sin señal GPS por ahora.', g_in: 'Estás en: ', g_out: 'Fuera de la estancia', g_offmap: 'Fuera del mapa', g_pos: 'Tu posición', g_weak: 'señal débil',
     road_entrance: 'el camino de entrada', road_east: 'el camino',
@@ -343,6 +405,24 @@ const I18N = {
     best_first: 'First run in this mode.', best_new: (b, n) => 'New best (previous ' + b + ' / ' + n + ').', best_so: (b, n) => 'Best so far: ' + b + ' / ' + n + '.',
     again: 'Run again', toexplore: 'Explore map', loading: 'Loading map…',
     tileerr: 'Some map tiles could not load. Check the connection and reload.', other: 'other ranch',
+    m_hunt: 'The Hunt', m_4: 'mode 4', h_title: 'The Hunt', h_cards: 'Postcards', h_album: 'Collected postcards', yes: 'Yes', no: 'No',
+    h_prompt: 'Walk to a white cross on the map. The treasure appears within 50 m.',
+    h_done: 'Collection complete! You have all 12 postcards.',
+    h_nogps: 'Turn on GPS (arrow button) to hunt for treasures.', h_gps_wait: 'Looking for GPS signal…',
+    h_weak: (n) => `Weak GPS signal (±${n} m). Find open sky.`,
+    h_near: (d) => `The nearest cross is ${d} away.`, h_here: "You're next to a treasure. Tap the cross to collect it.",
+    h_far: (d) => `You're still ${d} from that cross.`,
+    h_hint: 'Keep the app open and the screen on while you walk. Tap a collected postcard to see it again.',
+    h_restart: 'Restart the hunt', h_reset_yes: 'Yes, restart',
+    h_reset_q: (n) => (n === 1 ? 'Delete the collected postcard' : `Delete the ${n} collected postcards`) + ' and start again?',
+    h_slot: (n) => `Postcard ${n}: not found yet`, h_slot_got: (n, c) => `View postcard ${n}: ${c.es}`,
+    f_title: 'You found a treasure!', f_text: (d) => `You're ${d} from the cross. Do you want to collect it?`,
+    c_new: 'Postcard collected!', c_all: 'That was the last one! Collection complete.',
+    c_title: (n, c) => `Postcard ${n} of 12 · ${c.es} (${c.en})`, c_alt: (c) => `Vintage postcard showing a ${c.en}`,
+    c_save_q: 'Do you want to save the postcard to Photos?', c_save: 'Save to Photos', c_later: 'Not now', c_close: 'Close',
+    c_share: 'The Share menu opens: choose “Save Image”.',
+    c_hold: 'Touch and hold the postcard, then choose “Save to Photos”.',
+    c_saved: 'Done. If you chose “Save Image”, the postcard is now in Photos.',
     gps: 'My location', g_search: 'Looking for GPS signal…', g_denied: 'No location permission. Turn it on in Settings → Privacy & Security → Location Services.',
     g_unavail: 'No GPS signal right now.', g_in: "You're in: ", g_out: 'Outside the ranch', g_offmap: 'Outside the map', g_pos: 'Your position', g_weak: 'weak signal',
     road_entrance: 'the entrance road', road_east: 'the road',
@@ -448,8 +528,10 @@ function setMode(m) {
   resetMap();
   $('explore').hidden = m !== 'explore';
   $('result').hidden = true;
-  $('quiz').hidden = m === 'explore';
-  if (m === 'explore') { applyShowAll(); run = null; } else startRun(m);
+  $('quiz').hidden = m === 'explore' || m === 'hunt';
+  $('hunt').hidden = m !== 'hunt';
+  if (m !== 'hunt') leaveHunt();
+  if (m === 'explore') { applyShowAll(); run = null; } else if (m === 'hunt') { run = null; enterHunt(); } else startRun(m);
 }
 document.querySelectorAll('.modes button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => setMode(b.dataset.start));
@@ -624,7 +706,7 @@ function applyLang() {
   document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
   if (loadState) $('loadnote').textContent = T(loadState === 'error' ? 'tileerr' : 'loading');
   otherTip.setContent(T('other'));
-  renderWhere(); renderOffline();
+  renderWhere(); renderOffline(); renderHunt();
   renderInfoNum();
   if (run && !$('quiz').hidden) { renderPrompt(); if (lastFb && !$('fb').hidden) lastFb(); }
   if (run && !$('result').hidden) renderResultText();
@@ -675,7 +757,7 @@ function renderWhere() {
   if (gpsMsg) { w.textContent = T(gpsMsg); return; }
   if (!gpsFix) { w.textContent = T('g_search'); return; }
   const acc = '±' + Math.round(gpsFix.acc) + ' m' + (gpsFix.acc > 50 ? ' · ' + T('g_weak') : '');
-  w.textContent = (mode === 'explore' ? whereAt(gpsFix.p) : T('g_pos')) + ' · ' + acc;   // no field name during a quiz
+  w.textContent = (mode === 'explore' || mode === 'hunt' ? whereAt(gpsFix.p) : T('g_pos')) + ' · ' + acc;   // no field name during a quiz
 }
 function onPos(pos) {
   const [E, N] = ll2utm(pos.coords.latitude, pos.coords.longitude);
@@ -684,25 +766,25 @@ function onPos(pos) {
   gpsAcc.setLatLng(at).setRadius(pos.coords.accuracy / UNIT); gpsDot.setLatLng(at);
   if (!map.hasLayer(gpsDot)) { gpsAcc.addTo(map); gpsDot.addTo(map); }
   if (gpsFollow) { if (first) map.setView(at, Math.max(map.getZoom(), 3)); else map.panTo(at); }
-  refreshGpsBtn(); renderWhere();
+  refreshGpsBtn(); renderWhere(); huntCheck();
 }
 function onPosErr(err) {
   if (err.code === 1) { stopGps(); gpsMsg = 'g_denied'; }
   else gpsMsg = gpsFix ? null : 'g_unavail';
-  refreshGpsBtn(); renderWhere();
+  refreshGpsBtn(); renderWhere(); huntCheck();
 }
 function startGps() {
   gpsMsg = null;
   if (!('geolocation' in navigator)) { gpsMsg = 'g_unavail'; renderWhere(); return; }
   gpsFollow = true;
   gpsWatch = navigator.geolocation.watchPosition(onPos, onPosErr, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
-  store.set('campamento-gps', 'on'); refreshGpsBtn(); renderWhere();
+  store.set('campamento-gps', 'on'); refreshGpsBtn(); renderWhere(); huntCheck();
 }
 function stopGps() {
   if (gpsWatch != null) navigator.geolocation.clearWatch(gpsWatch);
   gpsWatch = null; gpsFix = null; gpsFollow = false; gpsMsg = null;
   map.removeLayer(gpsDot); map.removeLayer(gpsAcc);
-  store.set('campamento-gps', 'off'); refreshGpsBtn(); renderWhere();
+  store.set('campamento-gps', 'off'); refreshGpsBtn(); renderWhere(); huntCheck();
 }
 $('zgps').onclick = () => {
   if (gpsWatch == null) startGps();                                   // off → on, following
@@ -712,7 +794,7 @@ $('zgps').onclick = () => {
 map.on('dragstart', () => { if (gpsFollow) { gpsFollow = false; refreshGpsBtn(); } });
 
 /* ---------- offline storage (service worker) ---------- */
-const OFFLINE = { cache: 'potreros-v1', files: 176 };
+const OFFLINE = { cache: 'potreros-v2', files: 200 };
 let offState = null;
 function renderOffline() {
   const e = $('offline'); if (!e) return;
@@ -728,9 +810,202 @@ async function checkOffline() {
   renderOffline();
   if (offState === 'saving') setTimeout(checkOffline, 2000);
 }
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator) {
+  const hadSW = !!navigator.serviceWorker.controller; let swReloaded = false;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {      // a new version was installed: show it right away when nothing is in progress
+    if (hadSW && !swReloaded && mode === 'explore' && !modalKind) { swReloaded = true; location.reload(); }
+  });
+}
 checkOffline();
 if (store.get('campamento-gps') === 'on') startGps();
+
+/* ---------- Mode 4: The Hunt (collect 12 postcards by GPS) ---------- */
+const TREASURES = [{"n":1,"p":[3269.8,2898.0]},{"n":2,"p":[1395.2,2095.3]},{"n":3,"p":[2543.2,1956.6]},{"n":4,"p":[1597.6,3357.9]},{"n":5,"p":[5698.7,1042.8]},{"n":6,"p":[2138.5,1679.7]},{"n":7,"p":[1845.4,1039.5]},{"n":8,"p":[2599.3,2685.7]},{"n":9,"p":[3059.9,1654.0]},{"n":10,"p":[3990.8,2024.8]},{"n":11,"p":[4524.4,1038.4]},{"n":12,"p":[1209.4,1415.1]}];          // n = postcard number, p = map metres
+const CARDS = [
+  { es: 'Vaca', en: 'cow', alt: 'una vaca Holando' }, { es: 'Toro', en: 'bull', alt: 'un toro Hereford' }, { es: 'Oveja', en: 'sheep', alt: 'una oveja Corriedale' },
+  { es: 'Morrocoyo', en: 'slider turtle', alt: 'una tortuga morrocoyo' }, { es: 'Picaflor', en: 'hummingbird', alt: 'un picaflor en un ceibo' }, { es: 'Zorrillo', en: 'skunk', alt: 'un zorrillo' },
+  { es: 'Araña pollito', en: 'tarantula', alt: 'una araña pollito' }, { es: 'Lagarto overo', en: 'black-and-white tegu', alt: 'un lagarto overo' }, { es: 'Flamenco', en: 'Chilean flamingo', alt: 'un flamenco' },
+  { es: 'Lechucita', en: 'burrowing owl', alt: 'una lechucita de campo' }, { es: 'Zorro de monte', en: 'crab-eating fox', alt: 'un zorro de monte' }, { es: 'Carpincho', en: 'capybara', alt: 'un carpincho' }
+];
+const HUNT_R = 50, HUNT_OUT = 70, HUNT_ACC = 50;      // trigger radius, re-arm distance, worst usable GPS accuracy (m)
+const hunt = { got: [] };
+{ const h = store.get('campamento-hunt'); if (h && Array.isArray(h.got)) hunt.got = h.got.filter(n => TREASURES.some(t => t.n === n)); }
+const saveHunt = () => store.set('campamento-hunt', hunt);
+const has = (n) => hunt.got.includes(n);
+const declined = new Set();
+let modalKind = null, huntMsg = null, huntMsgTimer = null, cardFile = null;
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const fmtDist = (d) => d >= 1000 ? (d / 1000).toFixed(1).replace('.', LANG === 'es' ? ',' : '.') + ' km'
+                                 : (d < 100 ? Math.max(5, Math.round(d / 5) * 5) : Math.round(d / 10) * 10) + ' m';
+const pad2 = (n) => String(n).padStart(2, '0');
+
+/* crosses on the map */
+map.createPane('hunt'); map.getPane('hunt').style.zIndex = 630;
+const huntLayer = L.layerGroup(), cross = {};
+const crossIcon = (got) => L.divIcon({ className: 'hx' + (got ? ' got' : ''), iconSize: [44, 44], iconAnchor: [22, 22],
+  html: '<svg viewBox="-7 -7 44 44" aria-hidden="true"><path d="M6 6 24 24M24 6 6 24" fill="none" stroke="#000" stroke-opacity=".6" stroke-width="8.5" stroke-linecap="round"/><path class="x" d="M6 6 24 24M24 6 6 24" fill="none" stroke-width="4.5" stroke-linecap="round"/></svg>' });
+for (const t of TREASURES) {
+  L.circle(ll(t.p), { pane: 'hunt', radius: HUNT_R / UNIT, color: '#ffffff', weight: 1.2, opacity: 0.55, dashArray: '4 5', fill: false, interactive: false }).addTo(huntLayer);
+  cross[t.n] = L.marker(ll(t.p), { pane: 'hunt', icon: crossIcon(has(t.n)), keyboard: false }).on('click', () => onCrossTap(t)).addTo(huntLayer);
+}
+
+/* sound (synthesised), vibration, screen wake lock */
+let actx = null;
+function audioUnlock() {
+  try {
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    if (!actx) actx = new C();
+    if (actx.state !== 'running') actx.resume();
+    if (navigator.audioSession) navigator.audioSession.type = 'playback';      // iOS 17+: play even with the ringer switch off
+  } catch (e) {}
+}
+function tone(f, t, dur, type, vol) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + dur + 0.05);
+}
+function sfx(kind) {
+  if (!actx) return; audioUnlock();
+  try {
+    const t = actx.currentTime + 0.05;
+    if (kind === 'found') {                 // rising sparkle, played twice
+      [0, 0.62].forEach(o => [784, 988, 1175, 1568].forEach((f, i) => { tone(f, t + o + i * 0.1, 0.42, 'triangle', 0.3); tone(f * 2, t + o + i * 0.1, 0.25, 'sine', 0.1); }));
+    } else if (kind === 'got') {            // coin, then a major chord
+      tone(988, t, 0.09, 'square', 0.16); tone(1319, t + 0.09, 0.45, 'square', 0.16);
+      [523, 659, 784].forEach(f => tone(f, t + 0.5, 0.9, 'triangle', 0.2));
+    } else {                                // fanfare for the full collection
+      [[523, 0], [523, 0.16], [523, 0.32], [659, 0.48], [784, 0.72], [659, 0.96], [784, 1.12]].forEach(([f, o]) => tone(f, t + o, 0.3, 'square', 0.15));
+      [523, 659, 784, 1047].forEach(f => tone(f, t + 1.3, 1.4, 'triangle', 0.2));
+    }
+  } catch (e) {}
+}
+function buzz(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+  const tick = () => {            // iPhone has no vibration for web pages; a hidden switch gives a light tap where iOS allows it
+    try { const l = document.createElement('label'); l.ariaHidden = 'true'; l.style.display = 'none'; const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); l.appendChild(i); document.head.appendChild(l); l.click(); document.head.removeChild(l); } catch (e) {}
+  };
+  [0, 130, 260, 520].forEach(ms => setTimeout(tick, ms));
+}
+let wake = null;
+async function wakeOn() { try { if ('wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) { wake = null; } }
+function wakeOff() { try { if (wake) wake.release(); } catch (e) {} wake = null; }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && mode === 'hunt') { wakeOn(); huntCheck(); } });
+document.addEventListener('pointerdown', () => { if (mode === 'hunt') audioUnlock(); }, { passive: true });
+
+/* dialogs */
+function openModal(kind, html) {
+  modalKind = kind; $('sheet').innerHTML = html; $('modal').hidden = false; $('modal').scrollTop = 0;
+  const b = $('sheet').querySelector('button'); if (b) b.focus({ preventScroll: true });
+}
+function closeModal() { $('modal').hidden = true; $('sheet').innerHTML = ''; modalKind = null; cardFile = null; huntCheck(); }
+function offerTreasure(t, d, auto) {
+  if (auto) { sfx('found'); buzz([200, 100, 200, 100, 400]); }
+  openModal('found', '<svg class="mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" aria-hidden="true"><path d="M10 10 38 38M38 10 10 38"/></svg>'
+    + `<h2 id="sheet-h">${T('f_title')}</h2><p>${T('f_text')(fmtDist(d))}</p>`
+    + `<div class="actions"><button type="button" class="btn primary" id="f-yes">${T('yes')}</button><button type="button" class="btn ghost" id="f-no">${T('no')}</button></div>`);
+  $('f-yes').onclick = () => collect(t);
+  $('f-no').onclick = () => { declined.add(t.n); closeModal(); };
+}
+function collect(t) {
+  audioUnlock();
+  if (!has(t.n)) { hunt.got.push(t.n); saveHunt(); }
+  cross[t.n].setIcon(crossIcon(true));
+  sfx(hunt.got.length === TREASURES.length ? 'all' : 'got'); buzz([80, 60, 160]);
+  renderHunt(); showCard(t.n, true);
+}
+function showCard(n, fresh) {
+  const c = CARDS[n - 1], src = `cards/postal-${pad2(n)}.jpg`, all = hunt.got.length === TREASURES.length, canShare = 'share' in navigator && 'canShare' in navigator;
+  cardFile = null;
+  fetch(src).then(r => r.blob()).then(b => { if (modalKind === 'card') cardFile = new File([b], `postal-${pad2(n)}-${c.es.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ /g, '-')}.jpg`, { type: 'image/jpeg' }); }).catch(() => {});
+  openModal('card', `<h2 id="sheet-h">${fresh ? T(all ? 'c_all' : 'c_new') : T('c_title')(n, c)}</h2>` + (fresh ? `<p>${T('c_title')(n, c)}</p>` : '')
+    + `<img class="postal" src="${src}" width="1920" height="1360" alt="${T('c_alt')(c)}">`
+    + `<p>${T('c_save_q')}</p><p class="note" id="c-note">${T(canShare ? 'c_share' : 'c_hold')}</p>`
+    + `<div class="actions"><button type="button" class="btn primary" id="c-save">${T('c_save')}</button><button type="button" class="btn ghost" id="c-close">${T(fresh ? 'c_later' : 'c_close')}</button></div>`);
+  $('c-close').onclick = closeModal;
+  $('c-save').onclick = async () => {
+    const note = $('c-note');
+    try {
+      if (cardFile && navigator.canShare && navigator.canShare({ files: [cardFile] })) { await navigator.share({ files: [cardFile] }); note.textContent = T('c_saved'); $('c-close').textContent = T('c_close'); }
+      else if (cardFile && !('share' in navigator)) { const a = document.createElement('a'); a.href = URL.createObjectURL(cardFile); a.download = cardFile.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
+      else note.textContent = T('c_hold');
+    } catch (e) { if (!e || e.name !== 'AbortError') note.textContent = T('c_hold'); }
+  };
+}
+function flashHunt(fn) { huntMsg = fn; clearTimeout(huntMsgTimer); huntMsgTimer = setTimeout(() => { huntMsg = null; renderHunt(); }, 4500); renderHunt(); }
+function onCrossTap(t) {
+  if (has(t.n)) return showCard(t.n, false);
+  audioUnlock();
+  if (!gpsFix) return flashHunt(() => T(gpsMsg || (gpsWatch != null ? 'h_gps_wait' : 'h_nogps')));
+  if (gpsFix.acc > HUNT_ACC) return flashHunt(() => T('h_weak')(Math.round(gpsFix.acc)));
+  const d = dist(gpsFix.p, t.p);
+  if (d <= HUNT_R) { declined.delete(t.n); return offerTreasure(t, d, false); }
+  flashHunt(() => T('h_far')(fmtDist(dist(gpsFix ? gpsFix.p : t.p, t.p))));
+}
+
+/* panel */
+for (const t of TREASURES.slice().sort((a, b) => a.n - b.n)) {
+  const b = document.createElement('button'); b.type = 'button'; b.dataset.n = t.n; b.onclick = () => { if (has(t.n)) showCard(t.n, false); };
+  $('h-album').appendChild(b);
+}
+function renderHunt() {
+  if (mode !== 'hunt') return;
+  const n = hunt.got.length, all = n === TREASURES.length, ok = gpsFix && gpsFix.acc <= HUNT_ACC;
+  $('h-n').textContent = n; $('h-bar').style.width = (100 * n / TREASURES.length) + '%';
+  $('h-prompt').textContent = T(all ? 'h_done' : 'h_prompt');
+  let txt = '', warn = false, best = Infinity;
+  for (const t of TREASURES) {
+    const d = ok && !has(t.n) ? dist(gpsFix.p, t.p) : Infinity; if (d < best) best = d;
+    const e = cross[t.n].getElement(); if (e) e.classList.toggle('near', d <= HUNT_R);
+  }
+  if (huntMsg) txt = huntMsg();
+  else if (all) txt = '';
+  else if (gpsMsg) { txt = T(gpsMsg); warn = true; }
+  else if (gpsWatch == null) { txt = T('h_nogps'); warn = true; }
+  else if (!gpsFix) txt = T('h_gps_wait');
+  else if (!ok) { txt = T('h_weak')(Math.round(gpsFix.acc)); warn = true; }
+  else txt = best <= HUNT_R ? T('h_here') : T('h_near')(fmtDist(best));
+  const e = $('h-near'); e.textContent = txt; e.hidden = !txt; e.classList.toggle('warn', warn);
+  for (const b of $('h-album').children) {
+    const k = +b.dataset.n, got = has(k), c = CARDS[k - 1];
+    if (b.classList.contains('got') !== got || !b.firstChild) { b.classList.toggle('got', got); b.innerHTML = got ? `<img src="cards/thumb-${pad2(k)}.jpg" alt="">` : String(k); }
+    b.disabled = !got; b.setAttribute('aria-label', got ? T('h_slot_got')(k, c) : T('h_slot')(k));
+  }
+  $('h-restart').disabled = n === 0;
+  if (!$('h-confirm').hidden) $('h-confirm-t').textContent = T('h_reset_q')(n);
+}
+function huntCheck() {
+  if (mode !== 'hunt') return;
+  renderHunt();
+  if (!gpsFix || modalKind || gpsFix.acc > HUNT_ACC) return;
+  for (const t of TREASURES) {
+    if (has(t.n)) continue;
+    const d = dist(gpsFix.p, t.p);
+    if (d > HUNT_OUT) declined.delete(t.n);
+    else if (d <= HUNT_R && !declined.has(t.n)) return offerTreasure(t, d, true);
+  }
+}
+function enterHunt() {
+  audioUnlock(); wakeOn();
+  huntLayer.addTo(map);
+  if (gpsWatch == null) startGps();
+  fitRanch();                       // overview with all crosses; the arrow button follows your position
+  huntCheck();
+}
+function leaveHunt() {
+  map.removeLayer(huntLayer); wakeOff();
+  $('h-confirm').hidden = true; $('h-restart').hidden = false;
+  if (modalKind) { $('modal').hidden = true; $('sheet').innerHTML = ''; modalKind = null; }
+}
+$('h-restart').onclick = () => { $('h-confirm-t').textContent = T('h_reset_q')(hunt.got.length); $('h-confirm').hidden = false; $('h-restart').hidden = true; };
+$('h-reset-no').onclick = () => { $('h-confirm').hidden = true; $('h-restart').hidden = false; };
+$('h-reset-yes').onclick = () => {
+  hunt.got = []; saveHunt(); declined.clear();
+  for (const t of TREASURES) cross[t.n].setIcon(crossIcon(false));
+  $('h-confirm').hidden = true; $('h-restart').hidden = false;
+  huntCheck();
+};
 
 setMode('explore');
 showInfo(FIELDS.find(f => f.id === 18));
